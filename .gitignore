@@ -5,3 +5,8 @@ backend/.env
 frontend/.env
 dist/
 .DS_Store
+.env
+.env.local
+.env.example
+backend/.env
+backend/.env.example
