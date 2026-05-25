@@ -37,6 +37,27 @@ app.use('/api/search', require('./routes/search'));
 app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/activity', require('./routes/activity'));
 
+app.get('/api/seed-database', async (req, res) => {
+  try {
+    const bcrypt = require('bcryptjs');
+    const { User, Workspace, Project, Task, WikiPage } = require('./models/index');
+    await Promise.all([ User.deleteMany({}), Workspace.deleteMany({}), Project.deleteMany({}), Task.deleteMany({}), WikiPage.deleteMany({}) ]);
+    const passwordHash = await bcrypt.hash('password123', 10);
+    const user = await User.create({ name: 'Demo Judge', email: 'judge@demo.com', password: passwordHash });
+    const workspace = await Workspace.create({ name: 'Hackathon Workspace', ownerId: user._id, members: [{ userId: user._id, role: 'admin' }] });
+    const project = await Project.create({ workspaceId: workspace._id, name: 'DevCollab Demo App', description: 'A platform to help student developers collaborate in real-time.', techStack: ['React', 'Node.js', 'MongoDB', 'Socket.IO'], colourLabel: '#6366f1' });
+    const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
+    const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
+    await Task.insertMany([
+      { projectId: project._id, title: 'Design database schema', description: 'Create Mongoose models', status: 'done', priority: 'P2', assigneeId: user._id, createdAt: yesterday },
+      { projectId: project._id, title: 'Implement real-time collaboration', description: 'Socket.IO sync', status: 'inprogress', priority: 'P0', assigneeId: user._id, dueDate: tomorrow }
+    ]);
+    res.json({ message: '✅ Database seeded successfully! You can now login with judge@demo.com and password123' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Socket.IO
 const activeUsers = {};
 const jwt = require('jsonwebtoken');
