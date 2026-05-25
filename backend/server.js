@@ -45,7 +45,7 @@ app.get('/api/seed-database', async (req, res) => {
     const { Workspace, Project, Task, WikiPage } = require('./models/index');
     await Promise.all([ User.deleteMany({}), Workspace.deleteMany({}), Project.deleteMany({}), Task.deleteMany({}), WikiPage.deleteMany({}) ]);
     const passwordHash = await bcrypt.hash('password123', 10);
-    const user = await User.create({ name: 'Demo Judge', email: 'judge@demo.com', password: passwordHash });
+    const user = await User.create({ name: 'Demo Judge', email: 'judge@demo.com', passwordHash: passwordHash });
     const workspace = await Workspace.create({ name: 'Hackathon Workspace', ownerId: user._id, members: [{ userId: user._id, role: 'admin' }] });
     const project = await Project.create({ workspaceId: workspace._id, name: 'DevCollab Demo App', description: 'A platform to help student developers collaborate in real-time.', techStack: ['React', 'Node.js', 'MongoDB', 'Socket.IO'], colourLabel: '#6366f1' });
     const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
