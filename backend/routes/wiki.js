@@ -37,7 +37,8 @@ router.put('/:id', auth, async (req, res) => {
 
 router.delete('/:id', auth, async (req, res) => {
   try {
-    await WikiPage.findByIdAndDelete(req.params.id);
+    const page = await WikiPage.findByIdAndDelete(req.params.id);
+    if (!page) return res.status(404).json({ error: 'Page not found' });
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });

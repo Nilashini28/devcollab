@@ -210,7 +210,7 @@ export default function Layout() {
                   <div style={{ fontSize: 12, color: 'var(--text-2)', marginTop: 2 }}>{alert.message}</div>
                 </div>
                 {alert.action && (
-                  <Link to={alert.actionLink || '#'} style={{ fontSize: 12, color: 'var(--primary)', fontWeight: 500, whiteSpace: 'nowrap' }}>{alert.action} →</Link>
+                  <Link to={alert.actionLink || '#'} onClick={() => setShowDevMind(false)} style={{ fontSize: 12, color: 'var(--primary)', fontWeight: 500, whiteSpace: 'nowrap' }}>{alert.action} →</Link>
                 )}
               </div>
             ))}

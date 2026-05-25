@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import api from '../utils/api';
 import toast from 'react-hot-toast';
 
@@ -116,6 +116,24 @@ export default function Sprint() {
               </LineChart>
             </ResponsiveContainer>
           ) : <div style={{ color: 'var(--text-3)', textAlign: 'center', paddingTop: 40 }}>Not enough data yet</div>}
+        </div>
+
+        {/* Task Distribution Pie Chart */}
+        <div className="card">
+          <div style={{ fontWeight: 700, marginBottom: 14, fontSize: 14 }}>Task Distribution</div>
+          {data.taskDistribution?.length > 0 ? (
+            <ResponsiveContainer width="100%" height={120}>
+              <PieChart>
+                <Pie data={data.taskDistribution} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={30} outerRadius={50} paddingAngle={4}>
+                  {data.taskDistribution.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={['#64748b', '#f59e0b', '#3b82f6', '#10b981'][index % 4]} />
+                  ))}
+                </Pie>
+                <Tooltip contentStyle={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12 }} />
+                <Legend verticalAlign="middle" align="right" layout="vertical" wrapperStyle={{ fontSize: 11 }} />
+              </PieChart>
+            </ResponsiveContainer>
+          ) : <div style={{ color: 'var(--text-3)', textAlign: 'center', paddingTop: 40 }}>No tasks available</div>}
         </div>
       </div>
 

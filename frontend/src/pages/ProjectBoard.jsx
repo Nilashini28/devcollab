@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
-import { DndContext, closestCorners, PointerSensor, useSensor, useSensors, DragOverlay } from '@dnd-kit/core';
-import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
+import { DndContext, closestCorners, useSensor, useSensors, PointerSensor } from '@dnd-kit/core';
+import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useAuth } from '../context/AuthContext';
 import { getSocket } from '../utils/socket';
@@ -94,28 +94,63 @@ function TaskModal({ task, project, members, onClose, onUpdate, onDelete }) {
   const [viewers, setViewers] = useState([]);
   const [typing, setTyping] = useState(null);
 
-  useEffect(() => {
-    loadComments();
-    suggestLinks();
-    const s = getSocket();
-    s.emit('task:viewing', { projectId: task.projectId, taskId: task._id, userId: user._id, userName: user.name });
-    s.on('task:viewing', ({ taskId, userName }) => { if (taskId === task._id) setViewers(v => [...new Set([...v, userName])]); });
-    s.on('comment:typing', ({ taskId, userName }) => { if (taskId === task._id && userName !== user.name) { setTyping(userName); setTimeout(() => setTyping(null), 2000); } });
-    s.on('comment:new', c => { if (c.taskId === task._id) setComments(prev => [...prev, c]); });
-    return () => { s.off('task:viewing'); s.off('comment:typing'); s.off('comment:new'); };
-  }, []);
-
-  async function loadComments() {
+  const loadComments = useCallback(async () => {
     const r = await api.get(`/tasks/${task._id}/comments`);
     setComments(r.data);
-  }
+  }, [task._id]);
 
-  async function suggestLinks() {
+  const suggestLinks = useCallback(async () => {
     try {
-      const r = await api.post('/ai/suggest-links', { title: task.title, description: task.description, projectId: task.projectId, currentTaskId: task._id });
+      const r = await api.post('/ai/suggest-links', {
+        title: task.title,
+        description: task.description,
+        projectId: task.projectId,
+        currentTaskId: task._id
+      });
       setAiLinks(r.data.suggestions || []);
-    } catch {}
-  }
+    } catch {
+      // ignore
+    }
+  }, [task.title, task.description, task.projectId, task._id]);
+
+  useEffect(() => {
+    const s = getSocket();
+
+    // schedule async updates so React effects don't synchronously trigger setState
+    Promise.resolve().then(() => {
+      loadComments();
+      suggestLinks();
+    });
+
+    s.emit('task:viewing', {
+      projectId: task.projectId,
+      taskId: task._id,
+      userId: user._id,
+      userName: user.name
+    });
+
+    s.on('task:viewing', ({ taskId, userName }) => {
+      if (taskId === task._id) setViewers(v => [...new Set([...v, userName])]);
+    });
+
+    s.on('comment:typing', ({ taskId, userName }) => {
+      if (taskId === task._id && userName !== user.name) {
+        setTyping(userName);
+        setTimeout(() => setTyping(null), 2000);
+      }
+    });
+
+    s.on('comment:new', c => {
+      if (c.taskId === task._id) setComments(prev => [...prev, c]);
+    });
+
+    return () => {
+      s.off('task:viewing');
+      s.off('comment:typing');
+      s.off('comment:new');
+    };
+  }, [loadComments, suggestLinks, task._id, task.projectId, user._id, user.name]);
+
 
   async function saveField(field, value) {
     try {
@@ -152,7 +187,12 @@ function TaskModal({ task, project, members, onClose, onUpdate, onDelete }) {
     toast.success('Subtask added');
   }
 
-  const daysInColumn = task.columnEnteredAt ? Math.floor((Date.now() - new Date(task.columnEnteredAt)) / 86400000) : 0;
+  const daysInColumn = useMemo(() => {
+    const now = new Date();
+    return task.columnEnteredAt
+      ? Math.floor((now.getTime() - new Date(task.columnEnteredAt).getTime()) / 86400000)
+      : 0;
+  }, [task.columnEnteredAt]);
 
   return (
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
@@ -194,6 +234,7 @@ function TaskModal({ task, project, members, onClose, onUpdate, onDelete }) {
                     const updated = form.subTasks.map((s, j) => j === i ? { ...s, completed: !s.completed } : s);
                     setForm(p => ({ ...p, subTasks: updated }));
                     await api.put(`/tasks/${task._id}`, { subTasks: updated });
+                    getSocket().emit('task:updated', { ...task, subTasks: updated });
                   }} style={{ width: 'auto' }} />
                   <span style={{ fontSize: 13, textDecoration: sub.completed ? 'line-through' : 'none', color: sub.completed ? 'var(--text-3)' : 'var(--text-1)' }}>{sub.title}</span>
                 </div>
@@ -319,27 +360,28 @@ function TaskModal({ task, project, members, onClose, onUpdate, onDelete }) {
   );
 }
 
-function CreateTaskModal({ projectId, project, members, onClose, onCreate }) {
+function CreateTaskModal({ projectId, members, onClose, onCreate }) {
   const [form, setForm] = useState({ title: '', description: '', priority: 'P2', status: 'todo', labels: '', assigneeId: '' });
   const [nameSuggestions, setNameSuggestions] = useState([]);
-  const [aiLoading, setAiLoading] = useState(false);
   const [standup, setStandup] = useState(null);
   const [standupLoading, setStandupLoading] = useState(false);
   const [showStandup, setShowStandup] = useState(false);
+
+  const fetchNameSuggestions = useCallback(async () => {
+    try {
+      const r = await api.post('/ai/suggest-task-name', { title: form.title });
+      setNameSuggestions(r.data.suggestions || []);
+    } catch {
+      // ignore
+    }
+  }, [form.title]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
       if (form.title && form.title.split(' ').length < 5) fetchNameSuggestions();
     }, 800);
     return () => clearTimeout(timer);
-  }, [form.title]);
-
-  async function fetchNameSuggestions() {
-    try {
-      const r = await api.post('/ai/suggest-task-name', { title: form.title });
-      setNameSuggestions(r.data.suggestions || []);
-    } catch {}
-  }
+  }, [form.title, fetchNameSuggestions]);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -392,9 +434,23 @@ function CreateTaskModal({ projectId, project, members, onClose, onCreate }) {
                   </div>
                 )}
                 {standup.flags?.length > 0 && standup.flags.map((f, i) => <div key={i} style={{ color: 'var(--warning)', fontSize: 12, marginTop: 4 }}>⚑ {f}</div>)}
+                {standup.flags?.length > 0 && standup.flags.map((f, i) => <div key={i} style={{ color: 'var(--warning)', fontSize: 12, marginTop: 4 }}>⚑ {f}</div>)}
               </div>
             )}
-            <button onClick={() => setShowStandup(false)} className="btn btn-ghost btn-sm" style={{ marginTop: 8 }}>Close</button>
+            <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+              {standup && <button type="button" onClick={() => {
+                if (!('speechSynthesis' in window)) return toast.error('Text-to-speech not supported');
+                window.speechSynthesis.cancel();
+                let text = "Here is your Standup Report. ";
+                if (standup.yesterday?.length) { text += "Yesterday. "; standup.yesterday.forEach(y => text += `${y.member} completed ${y.completed.join(', ')}. `); }
+                if (standup.today?.length) { text += "Today. "; standup.today.forEach(t => text += `${t.member} is working on ${t.inProgress.join(', ')}. `); }
+                if (standup.blockers?.length) { text += "Warning, Blockers detected! "; standup.blockers.forEach(b => text += `Task ${b.task} is blocked because ${b.reason}. `); }
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.rate = 1.05;
+                window.speechSynthesis.speak(utterance);
+              }} className="btn btn-primary btn-sm">🔊 Read Aloud</button>}
+              <button type="button" onClick={() => { setShowStandup(false); window.speechSynthesis?.cancel(); }} className="btn btn-ghost btn-sm">Close</button>
+            </div>
           </div>
         )}
 
@@ -466,8 +522,9 @@ export default function ProjectBoard() {
   const { user } = useAuth();
   const [tasks, setTasks] = useState([]);
   const [project, setProject] = useState(null);
-  const [members, setMembers] = useState([]);
   const [workspace, setWorkspace] = useState(null);
+  const [members, setMembers] = useState([]);
+
   const [loading, setLoading] = useState(true);
   const [selectedTask, setSelectedTask] = useState(null);
   const [showCreate, setShowCreate] = useState(false);
@@ -477,6 +534,7 @@ export default function ProjectBoard() {
   const [filterPriority, setFilterPriority] = useState('');
   const [search, setSearch] = useState('');
   const [view, setView] = useState('kanban');
+  const [cursors, setCursors] = useState({});
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
@@ -489,11 +547,32 @@ export default function ProjectBoard() {
     s.on('task:updated', task => setTasks(prev => prev.map(t => t._id === task._id ? task : t)));
     s.on('task:created', task => setTasks(prev => [...prev, task]));
     s.on('task:deleted', ({ _id }) => setTasks(prev => prev.filter(t => t._id !== _id)));
+    s.on('cursor:move', (data) => setCursors(prev => ({ ...prev, [data.socketId]: data })));
+    s.on('task:reordered', updatedTasks => {
+      setTasks(prev => {
+        const map = new Map(updatedTasks.map(t => [t._id, t]));
+        return prev.map(t => map.has(t._id) ? { ...t, order: map.get(t._id).order, status: map.get(t._id).status } : t).sort((a,b) => a.order - b.order);
+      });
+    });
     return () => {
       s.emit('leave:project', { projectId });
-      s.off('presence:update'); s.off('task:moved'); s.off('task:updated'); s.off('task:created'); s.off('task:deleted');
+      s.off('presence:update'); s.off('task:moved'); s.off('task:updated'); s.off('task:created'); s.off('task:deleted'); s.off('task:reordered'); s.off('cursor:move');
     };
   }, [projectId]);
+
+  const handleMouseMove = useCallback((e) => {
+    getSocket().emit('cursor:move', { projectId, x: e.clientX, y: e.clientY });
+  }, [projectId]);
+
+  useEffect(() => {
+    let timeout;
+    const onMove = (e) => {
+      if (timeout) return;
+      timeout = setTimeout(() => { handleMouseMove(e); timeout = null; }, 50);
+    };
+    window.addEventListener('mousemove', onMove);
+    return () => window.removeEventListener('mousemove', onMove);
+  }, [handleMouseMove]);
 
   async function loadData() {
     try {
@@ -520,16 +599,58 @@ export default function ProjectBoard() {
   async function handleDragEnd({ active, over }) {
     setActiveId(null);
     if (!over) return;
-    const task = tasks.find(t => t._id === active.id);
-    if (!task) return;
-    const targetCol = COLUMNS.find(c => c.id === over.id) || COLUMNS.find(c => tasks.find(t => t._id === over.id && t.status === c.id));
-    const newStatus = targetCol?.id || over.id;
-    if (!newStatus || newStatus === task.status) return;
-    setTasks(prev => prev.map(t => t._id === active.id ? { ...t, status: newStatus } : t));
-    try {
-      await api.put(`/tasks/${active.id}`, { status: newStatus });
-      getSocket().emit('task:moved', { projectId, taskId: active.id, status: newStatus });
-    } catch { toast.error('Failed to move task'); loadData(); }
+
+    const activeTask = tasks.find(t => t._id === active.id);
+    const overTask = tasks.find(t => t._id === over.id);
+    if (!activeTask) return;
+
+    const targetColId = overTask ? overTask.status : over.id;
+    const isSameColumn = activeTask.status === targetColId;
+
+    let newTasks = [...tasks];
+
+    if (isSameColumn) {
+      if (active.id === over.id) return;
+      const colTasks = newTasks.filter(t => t.status === targetColId).sort((a,b) => a.order - b.order);
+      const oldIdx = colTasks.findIndex(t => t._id === active.id);
+      const newIdx = colTasks.findIndex(t => t._id === over.id);
+      const reorderedCol = arrayMove(colTasks, oldIdx, newIdx);
+      
+      const updates = reorderedCol.map((t, i) => ({ _id: t._id, order: i, status: targetColId }));
+      newTasks = newTasks.map(t => {
+        const u = updates.find(x => x._id === t._id);
+        return u ? { ...t, order: u.order, status: u.status } : t;
+      });
+      setTasks(newTasks.sort((a,b) => a.order - b.order));
+      try {
+        await api.put('/tasks/reorder', { projectId, tasks: updates });
+      } catch { toast.error('Failed to reorder'); loadData(); }
+    } else {
+      // Moving to different column
+      let activeColTasks = newTasks.filter(t => t.status === activeTask.status).sort((a,b) => a.order - b.order);
+      let targetColTasks = newTasks.filter(t => t.status === targetColId).sort((a,b) => a.order - b.order);
+      
+      activeColTasks = activeColTasks.filter(t => t._id !== active.id);
+      const overIdx = targetColTasks.findIndex(t => t._id === over.id);
+      const newIdx = overIdx >= 0 ? overIdx : targetColTasks.length;
+      
+      const movedTask = { ...activeTask, status: targetColId };
+      targetColTasks.splice(newIdx, 0, movedTask);
+
+      const updates = [
+        ...activeColTasks.map((t, i) => ({ _id: t._id, order: i, status: t.status })),
+        ...targetColTasks.map((t, i) => ({ _id: t._id, order: i, status: t.status }))
+      ];
+
+      newTasks = newTasks.map(t => {
+        const u = updates.find(x => x._id === t._id);
+        return u ? { ...t, order: u.order, status: u.status } : t;
+      });
+      setTasks(newTasks.sort((a,b) => a.order - b.order));
+      try {
+        await api.put('/tasks/reorder', { projectId, tasks: updates });
+      } catch { toast.error('Failed to move task'); loadData(); }
+    }
   }
 
   if (loading) return (
@@ -623,17 +744,27 @@ export default function ProjectBoard() {
       )}
 
       {selectedTask && (
-        <TaskModal task={selectedTask} project={project} members={members}
+          <TaskModal task={selectedTask} project={project} members={members}
           onClose={() => setSelectedTask(null)}
           onUpdate={updated => { setTasks(prev => prev.map(t => t._id === updated._id ? updated : t)); setSelectedTask(updated); }}
           onDelete={async id => { await api.delete(`/tasks/${id}`); setTasks(prev => prev.filter(t => t._id !== id)); }} />
       )}
 
       {showCreate && (
-        <CreateTaskModal projectId={projectId} project={project} members={members}
+        <CreateTaskModal projectId={projectId} members={members}
           onClose={() => setShowCreate(false)}
           onCreate={task => setTasks(prev => [...prev, task])} />
       )}
+
+      {/* Live Cursors */}
+      {Object.values(cursors).map(c => (
+        <div key={c.socketId} style={{ position: 'fixed', left: c.x, top: c.y, pointerEvents: 'none', zIndex: 9999, transition: 'all 0.1s linear', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))' }}>
+            <path d="M5.65376 21.0069L2.33878 2.65624C2.15822 1.65682 3.19526 0.906323 4.10304 1.37894L21.3653 10.368C22.2573 10.8327 22.2359 12.1287 21.3283 12.5574L14.2818 15.8863C14.0734 15.9848 13.9054 16.1558 13.8117 16.3659L10.6387 23.4776C10.2224 24.4107 8.87413 24.4144 8.44855 23.4839L5.65376 21.0069Z" fill="#6366f1" stroke="white" strokeWidth="1.5" />
+          </svg>
+          <div style={{ background: '#6366f1', color: 'white', padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 600, boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>{c.userName}</div>
+        </div>
+      ))}
     </div>
   );
 }

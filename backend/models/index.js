@@ -29,6 +29,7 @@ const taskSchema = new mongoose.Schema({
   assigneeId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   priority: { type: String, enum: ['P0','P1','P2'], default: 'P2' },
   status: { type: String, enum: ['todo','inprogress','inreview','done'], default: 'todo' },
+  order: { type: Number, default: 0 },
   labels: [{ type: String }],
   dueDate: { type: Date },
   linkedTaskIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Task' }],

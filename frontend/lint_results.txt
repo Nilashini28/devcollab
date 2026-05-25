@@ -1,0 +1,389 @@
+﻿
+> frontend@0.0.0 lint
+> eslint .
+
+
+C:\Users\support\Downloads\devcollab\devcollab\frontend\src\components\Layout.jsx
+   2:31  error    'useParams' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   no-unused-vars
+  27:10  error    'workspaces' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         no-unused-vars
+  38:5   error    Error: Cannot access variable before it is declared
+
+`loadWorkspaces` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+  36 |
+  37 |   useEffect(() => {
+> 38 |     loadWorkspaces();
+     |     ^^^^^^^^^^^^^^ `loadWorkspaces` accessed before it is declared
+  39 |     loadNotifications();
+  40 |     const s = getSocket();
+  41 |     s.emit('join:user', { userId: user._id });
+
+  56 |   }, [location.pathname]);
+  57 |
+> 58 |   async function loadWorkspaces() {
+     |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 59 |     try {
+     | ^^^^^^^^^
+> 60 |       const r = await api.get('/workspaces');
+     | ^^^^^^^^^
+> 61 |       setWorkspaces(r.data);
+     | ^^^^^^^^^
+> 62 |       if (r.data.length > 0) {
+     | ^^^^^^^^^
+> 63 |         setActiveWorkspace(r.data[0]);
+     | ^^^^^^^^^
+> 64 |         loadProjects(r.data[0]._id);
+     | ^^^^^^^^^
+> 65 |       }
+     | ^^^^^^^^^
+> 66 |     } catch (e) {}
+     | ^^^^^^^^^
+> 67 |   }
+     | ^^^^ `loadWorkspaces` is declared here
+  68 |
+  69 |   async function loadProjects(wsId) {
+  70 |     try {  react-hooks/immutability
+  39:5   error    Error: Cannot access variable before it is declared
+
+`loadNotifications` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+  37 |   useEffect(() => {
+  38 |     loadWorkspaces();
+> 39 |     loadNotifications();
+     |     ^^^^^^^^^^^^^^^^^ `loadNotifications` accessed before it is declared
+  40 |     const s = getSocket();
+  41 |     s.emit('join:user', { userId: user._id });
+  42 |     s.on('notification:new', n => {
+
+  74 |   }
+  75 |
+> 76 |   async function loadNotifications() {
+     |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 77 |     try {
+     | ^^^^^^^^^
+> 78 |       const r = await api.get('/notifications');
+     | ^^^^^^^^^
+> 79 |       setNotifications(r.data);
+     | ^^^^^^^^^
+> 80 |       setUnread(r.data.filter(n => !n.read).length);
+     | ^^^^^^^^^
+> 81 |     } catch (e) {}
+     | ^^^^^^^^^
+> 82 |   }
+     | ^^^^ `loadNotifications` is declared here
+  83 |
+  84 |   async function loadDevMind(projectId) {
+  85 |     try {                                                                                               react-hooks/immutability
+  48:6   warning  React Hook useEffect has missing dependencies: 'loadWorkspaces' and 'user._id'. Either include them or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      react-hooks/exhaustive-deps
+  53:7   error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  51 |     const match = location.pathname.match(/\/project\/([^/]+)/);
+  52 |     if (match) {
+> 53 |       setActiveProjectId(match[1]);
+     |       ^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  54 |       loadDevMind(match[1]);
+  55 |     }
+  56 |   }, [location.pathname]);                                                                                                                     react-hooks/set-state-in-effect
+  54:7   error    Error: Cannot access variable before it is declared
+
+`loadDevMind` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+  52 |     if (match) {
+  53 |       setActiveProjectId(match[1]);
+> 54 |       loadDevMind(match[1]);
+     |       ^^^^^^^^^^^ `loadDevMind` accessed before it is declared
+  55 |     }
+  56 |   }, [location.pathname]);
+  57 |
+
+  82 |   }
+  83 |
+> 84 |   async function loadDevMind(projectId) {
+     |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 85 |     try {
+     | ^^^^^^^^^
+> 86 |       const r = await api.post('/ai/devmind', { projectId });
+     | ^^^^^^^^^
+> 87 |       setDevMindAlerts(r.data.alerts || []);
+     | ^^^^^^^^^
+> 88 |     } catch (e) {}
+     | ^^^^^^^^^
+> 89 |   }
+     | ^^^^ `loadDevMind` is declared here
+  90 |
+  91 |   async function markAllRead() {
+  92 |     await api.put('/notifications/read-all');                                                                                                                                                                                                     react-hooks/immutability
+  66:14  error    'e' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           no-unused-vars
+  66:17  error    Empty block statement                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   no-empty
+  73:14  error    'e' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           no-unused-vars
+  73:17  error    Empty block statement                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   no-empty
+  81:14  error    'e' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           no-unused-vars
+  81:17  error    Empty block statement                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   no-empty
+  88:14  error    'e' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           no-unused-vars
+  88:17  error    Empty block statement                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   no-empty
+
+C:\Users\support\Downloads\devcollab\devcollab\frontend\src\context\AuthContext.jsx
+  14:14  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  12 |     if (token) {
+  13 |       api.get('/auth/me').then(r => { setUser(r.data); setLoading(false); }).catch(() => { localStorage.removeItem('token'); setLoading(false); });
+> 14 |     } else { setLoading(false); }
+     |              ^^^^^^^^^^ Avoid calling setState() directly within an effect
+  15 |   }, []);
+  16 |
+  17 |   const login = async (email, password) => {  react-hooks/set-state-in-effect
+  38:14  error  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                react-refresh/only-export-components
+
+C:\Users\support\Downloads\devcollab\devcollab\frontend\src\context\ThemeContext.jsx
+  18:14  error  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Users\support\Downloads\devcollab\devcollab\frontend\src\pages\Activity.jsx
+  15:18  error  Error: Cannot call impure function during render
+
+`Date.now` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+  13 |
+  14 |   function timeAgo(date) {
+> 15 |     const diff = Date.now() - new Date(date);
+     |                  ^^^^^^^^^^ Cannot call impure function
+  16 |     const mins = Math.floor(diff / 60000);
+  17 |     if (mins < 1) return 'just now';
+  18 |     if (mins < 60) return `${mins}m ago`;  react-hooks/purity
+
+C:\Users\support\Downloads\devcollab\devcollab\frontend\src\pages\Dashboard.jsx
+  17:21  error  Error: Cannot access variable before it is declared
+
+`loadData` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+  15 |   const [newProject, setNewProject] = useState({ name: '', description: '', techStack: '', colourLabel: '#6366f1' });
+  16 |
+> 17 |   useEffect(() => { loadData(); }, []);
+     |                     ^^^^^^^^ `loadData` accessed before it is declared
+  18 |
+  19 |   async function loadData() {
+  20 |     try {
+
+  17 |   useEffect(() => { loadData(); }, []);
+  18 |
+> 19 |   async function loadData() {
+     |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 20 |     try {
+     | ^^^^^^^^^
+> 21 |       const wsRes = await api.get('/workspaces');
+     ΓÇª
+     | ^^^^^^^^^
+> 29 |     finally { setLoading(false); }
+     | ^^^^^^^^^
+> 30 |   }
+     | ^^^^ `loadData` is declared here
+  31 |
+  32 |   async function createWorkspace() {
+  33 |     const name = prompt('Workspace name:');  react-hooks/immutability
+  28:14  error  'e' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 no-unused-vars
+  40:14  error  'e' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 no-unused-vars
+  53:14  error  'e' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 no-unused-vars
+
+C:\Users\support\Downloads\devcollab\devcollab\frontend\src\pages\ProjectBoard.jsx
+    3:2   error    'DragOverlay' is not defined                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                no-undef
+    4:4   error    'activeId' is not defined                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   no-undef
+    7:10  error    'tasks' is not defined                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      no-undef
+    7:36  error    'activeId' is not defined                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   no-undef
+  106:5   error    Error: Cannot access variable before it is declared
+
+`loadComments` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+  104 |
+  105 |   useEffect(() => {
+> 106 |     loadComments();
+      |     ^^^^^^^^^^^^ `loadComments` accessed before it is declared
+  107 |     suggestLinks();
+  108 |     const s = getSocket();
+  109 |     s.emit('task:viewing', { projectId: task.projectId, taskId: task._id, userId: user._id, userName: user.name });
+
+  114 |   }, []);
+  115 |
+> 116 |   async function loadComments() {
+      |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 117 |     const r = await api.get(`/tasks/${task._id}/comments`);
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 118 |     setComments(r.data);
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 119 |   }
+      | ^^^^ `loadComments` is declared here
+  120 |
+  121 |   async function suggestLinks() {
+  122 |     try {                                                                                                                                                                                                                                       react-hooks/immutability
+  107:5   error    Error: Cannot access variable before it is declared
+
+`suggestLinks` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+  105 |   useEffect(() => {
+  106 |     loadComments();
+> 107 |     suggestLinks();
+      |     ^^^^^^^^^^^^ `suggestLinks` accessed before it is declared
+  108 |     const s = getSocket();
+  109 |     s.emit('task:viewing', { projectId: task.projectId, taskId: task._id, userId: user._id, userName: user.name });
+  110 |     s.on('task:viewing', ({ taskId, userName }) => { if (taskId === task._id) setViewers(v => [...new Set([...v, userName])]); });
+
+  119 |   }
+  120 |
+> 121 |   async function suggestLinks() {
+      |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 122 |     try {
+      | ^^^^^^^^^
+> 123 |       const r = await api.post('/ai/suggest-links', { title: task.title, description: task.description, projectId: task.projectId, currentTaskId: task._id });
+      | ^^^^^^^^^
+> 124 |       setAiLinks(r.data.suggestions || []);
+      | ^^^^^^^^^
+> 125 |     } catch {}
+      | ^^^^^^^^^
+> 126 |   }
+      | ^^^^ `suggestLinks` is declared here
+  127 |
+  128 |   async function saveField(field, value) {
+  129 |     try {  react-hooks/immutability
+  114:6   warning  React Hook useEffect has missing dependencies: 'loadComments', 'suggestLinks', 'task._id', 'task.projectId', 'user._id', and 'user.name'. Either include them or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                react-hooks/exhaustive-deps
+  125:13  error    Empty block statement                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       no-empty
+  163:59  error    Error: Cannot call impure function during render
+
+`Date.now` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+  161 |   }
+  162 |
+> 163 |   const daysInColumn = task.columnEnteredAt ? Math.floor((Date.now() - new Date(task.columnEnteredAt)) / 86400000) : 0;
+      |                                                           ^^^^^^^^^^ Cannot call impure function
+  164 |
+  165 |   return (
+  166 |     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 react-hooks/purity
+  331:39  error    'project' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         no-unused-vars
+  334:10  error    'aiLoading' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              no-unused-vars
+  334:21  error    'setAiLoading' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           no-unused-vars
+  341:59  error    Error: Cannot access variable before it is declared
+
+`fetchNameSuggestions` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+  339 |   useEffect(() => {
+  340 |     const timer = setTimeout(() => {
+> 341 |       if (form.title && form.title.split(' ').length < 5) fetchNameSuggestions();
+      |                                                           ^^^^^^^^^^^^^^^^^^^^ `fetchNameSuggestions` accessed before it is declared
+  342 |     }, 800);
+  343 |     return () => clearTimeout(timer);
+  344 |   }, [form.title]);
+
+  344 |   }, [form.title]);
+  345 |
+> 346 |   async function fetchNameSuggestions() {
+      |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 347 |     try {
+      | ^^^^^^^^^
+> 348 |       const r = await api.post('/ai/suggest-task-name', { title: form.title });
+      | ^^^^^^^^^
+> 349 |       setNameSuggestions(r.data.suggestions || []);
+      | ^^^^^^^^^
+> 350 |     } catch {}
+      | ^^^^^^^^^
+> 351 |   }
+      | ^^^^ `fetchNameSuggestions` is declared here
+  352 |
+  353 |   async function handleSubmit(e) {
+  354 |     e.preventDefault();                                                                         react-hooks/immutability
+  344:6   warning  React Hook useEffect has a missing dependency: 'fetchNameSuggestions'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     react-hooks/exhaustive-deps
+  350:13  error    Empty block statement                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       no-empty
+  479:10  error    'workspace' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              no-unused-vars
+  490:19  error    'useSensors' is not defined                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 no-undef
+  490:30  error    'useSensor' is not defined                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  no-undef
+  490:40  error    'PointerSensor' is not defined                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              no-undef
+  511:6   warning  React Hook useEffect has missing dependencies: 'loadData', 'user._id', 'user.avatar', and 'user.name'. Either include them or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   react-hooks/exhaustive-deps
+  644:10  error    'DndContext' is not defined                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 no-undef
+  644:59  error    'closestCorners' is not defined                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             no-undef
+
+C:\Users\support\Downloads\devcollab\devcollab\frontend\src\pages\Snippets.jsx
+   8:32  error    'language' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     no-unused-vars
+  71:5   error    Error: Cannot access variable before it is declared
+
+`loadData` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+  69 |
+  70 |   useEffect(() => {
+> 71 |     loadData();
+     |     ^^^^^^^^ `loadData` accessed before it is declared
+  72 |     api.get(`/tasks?projectId=${projectId}`).then(r => setTasks(r.data)).catch(() => {});
+  73 |   }, [projectId]);
+  74 |
+
+  73 |   }, [projectId]);
+  74 |
+> 75 |   async function loadData() {
+     |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 76 |     try {
+     | ^^^^^^^^^
+> 77 |       const r = await api.get(`/snippets?projectId=${projectId}`);
+     | ^^^^^^^^^
+> 78 |       setSnippets(r.data);
+     | ^^^^^^^^^
+> 79 |       if (r.data.length > 0) setSelected(r.data[0]);
+     | ^^^^^^^^^
+> 80 |     } catch { toast.error('Failed to load snippets'); }
+     | ^^^^^^^^^
+> 81 |     finally { setLoading(false); }
+     | ^^^^^^^^^
+> 82 |   }
+     | ^^^^ `loadData` is declared here
+  83 |
+  84 |   async function createSnippet(e) {
+  85 |     e.preventDefault();  react-hooks/immutability
+  73:6   warning  React Hook useEffect has a missing dependency: 'loadData'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              react-hooks/exhaustive-deps
+
+C:\Users\support\Downloads\devcollab\devcollab\frontend\src\pages\Sprint.jsx
+  33:36  warning  React Hook useEffect has a missing dependency: 'loadData'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Users\support\Downloads\devcollab\devcollab\frontend\src\pages\Wiki.jsx
+  22:21  error    Error: Cannot access variable before it is declared
+
+`loadPages` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+  20 |   const [search, setSearch] = useState('');
+  21 |
+> 22 |   useEffect(() => { loadPages(); }, [projectId]);
+     |                     ^^^^^^^^^ `loadPages` accessed before it is declared
+  23 |
+  24 |   async function loadPages() {
+  25 |     try {
+
+  22 |   useEffect(() => { loadPages(); }, [projectId]);
+  23 |
+> 24 |   async function loadPages() {
+     |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 25 |     try {
+     | ^^^^^^^^^
+> 26 |       const r = await api.get(`/wiki?projectId=${projectId}`);
+     | ^^^^^^^^^
+> 27 |       setPages(r.data);
+     | ^^^^^^^^^
+> 28 |       if (r.data.length > 0) loadPage(r.data[0]._id);
+     | ^^^^^^^^^
+> 29 |     } catch { toast.error('Failed to load wiki'); }
+     | ^^^^^^^^^
+> 30 |     finally { setLoading(false); }
+     | ^^^^^^^^^
+> 31 |   }
+     | ^^^^ `loadPages` is declared here
+  32 |
+  33 |   async function loadPage(id) {
+  34 |     try {  react-hooks/immutability
+  22:37  warning  React Hook useEffect has a missing dependency: 'loadPages'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            react-hooks/exhaustive-deps
+
+Γ£û 51 problems (44 errors, 7 warnings)
+

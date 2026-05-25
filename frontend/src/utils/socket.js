@@ -6,7 +6,11 @@ let socket = null;
 
 export function getSocket() {
   if (!socket) {
-    socket = io(SOCKET_URL, { transports: ['websocket', 'polling'] });
+    const token = localStorage.getItem('token');
+    socket = io(SOCKET_URL, { 
+      transports: ['websocket', 'polling'],
+      auth: { token }
+    });
   }
   return socket;
 }

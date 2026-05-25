@@ -33,7 +33,8 @@ router.put('/:id', auth, async (req, res) => {
 
 router.delete('/:id', auth, async (req, res) => {
   try {
-    await Snippet.findByIdAndDelete(req.params.id);
+    const snippet = await Snippet.findByIdAndDelete(req.params.id);
+    if (!snippet) return res.status(404).json({ error: 'Snippet not found' });
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
