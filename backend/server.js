@@ -41,7 +41,8 @@ app.use('/api/activity', require('./routes/activity'));
 app.get('/api/seed-database', async (req, res) => {
   try {
     const bcrypt = require('bcryptjs');
-    const { User, Workspace, Project, Task, WikiPage } = require('./models/index');
+    const User = require('./models/User');
+    const { Workspace, Project, Task, WikiPage } = require('./models/index');
     await Promise.all([ User.deleteMany({}), Workspace.deleteMany({}), Project.deleteMany({}), Task.deleteMany({}), WikiPage.deleteMany({}) ]);
     const passwordHash = await bcrypt.hash('password123', 10);
     const user = await User.create({ name: 'Demo Judge', email: 'judge@demo.com', password: passwordHash });
