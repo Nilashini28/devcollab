@@ -45,7 +45,7 @@ function TaskCard({ task, onClick, isDragging, remoteDragging, taskViewers }) {
             <span style={{ fontSize: 11, color: 'var(--text-3)' }}>✓ {completedSubs}/{task.subTasks.length}</span>
           )}
         </div>
-        {task.dueDate && (
+        {task.dueDate ? (
           <span style={{ fontSize: 11, color: overdue ? 'var(--danger)' : isToday(new Date(task.dueDate)) ? 'var(--warning)' : 'var(--text-3)', fontWeight: overdue ? 600 : 400 }}>
             {overdue ? '⚠ ' : ''}{format(new Date(task.dueDate), 'MMM d')}
           </span>
