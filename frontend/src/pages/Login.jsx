@@ -4,8 +4,8 @@ import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 
 export default function Login() {
-  const [email, setEmail] = useState('demo@devcollab.app');
-  const [password, setPassword] = useState('Demo1234');
+  const [email, setEmail] = useState('judge@demo.com');
+  const [password, setPassword] = useState('password123');
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -33,7 +33,7 @@ export default function Login() {
         </div>
         <div className="card">
           <div style={{ background: 'var(--primary-light)', border: '1px solid var(--primary)', borderRadius: 8, padding: '10px 14px', marginBottom: 20, fontSize: 13 }}>
-            <strong>Demo account:</strong> demo@devcollab.app / Demo1234
+            <strong>Demo account:</strong> judge@demo.com / password123
           </div>
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div>
