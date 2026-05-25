@@ -64,6 +64,36 @@ router.post('/', auth, async (req, res) => {
   }
 });
 
+router.post('/bulk', auth, async (req, res) => {
+  try {
+    const { tasks, projectId } = req.body;
+    if (!tasks || !tasks.length) return res.status(400).json({ error: 'No tasks' });
+    
+    const maxOrderTask = await Task.findOne({ projectId, status: 'todo' }).sort('-order');
+    let startOrder = maxOrderTask ? maxOrderTask.order + 1 : 0;
+    
+    const newTasks = tasks.map((t, i) => ({
+      projectId,
+      title: t.title,
+      description: t.description,
+      priority: t.priority || 'P2',
+      status: 'todo',
+      order: startOrder + i,
+      labels: t.labels || [],
+      createdBy: req.user._id
+    }));
+    
+    const inserted = await Task.insertMany(newTasks);
+    
+    const io = req.app.get('io');
+    inserted.forEach(t => io.to(`project:${projectId}`).emit('task:created', t));
+    
+    res.json(inserted);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 router.get('/:id', auth, async (req, res) => {
   try {
     const task = await Task.findById(req.params.id)

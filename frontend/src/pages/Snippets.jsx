@@ -13,7 +13,7 @@ function CodeHighlight({ code, language }) {
   );
 }
 
-function ReviewPanel({ review, loading }) {
+function ReviewPanel({ review, loading, onApplyFix }) {
   if (loading) return <div style={{ padding: 20, color: 'var(--text-2)' }}>🤖 Reviewing code...</div>;
   if (!review) return null;
   const scoreColor = review.score >= 8 ? 'var(--success)' : review.score >= 5 ? 'var(--warning)' : 'var(--danger)';
@@ -25,25 +25,33 @@ function ReviewPanel({ review, loading }) {
       </div>
       <div style={{ padding: 14 }}>
         <p style={{ fontSize: 13, color: 'var(--text-2)', marginBottom: 12 }}>{review.summary}</p>
-        {review.issues?.map((issue, i) => (
-          <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
-            <span className={`issue-badge issue-badge-${issue.severity}`}>{issue.severity}</span>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-1)' }}>{issue.type} — Line {issue.line}</div>
-              <div style={{ fontSize: 12, color: 'var(--text-2)' }}>{issue.message}</div>
-            </div>
-          </div>
-        ))}
-        {review.suggestions?.length > 0 && (
-          <div style={{ marginTop: 12 }}>
-            <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 6 }}>Suggestions</div>
-            {review.suggestions.map((s, i) => <div key={i} style={{ fontSize: 12, color: 'var(--text-2)', padding: '3px 0' }}>• {s}</div>)}
-          </div>
-        )}
-        {review.fixedCode && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {['bugs', 'performance', 'security', 'readability'].map(cat => {
+            if (!review[cat] || review[cat].length === 0) return null;
+            return (
+              <details key={cat} open>
+                <summary style={{ fontSize: 13, fontWeight: 700, cursor: 'pointer', textTransform: 'capitalize', color: 'var(--text-1)' }}>
+                  {cat === 'bugs' ? '🐛' : cat === 'performance' ? '⚡' : cat === 'security' ? '🔒' : '📖'} {cat} ({review[cat].length})
+                </summary>
+                <div style={{ marginTop: 8, paddingLeft: 20 }}>
+                  {review[cat].map((item, i) => (
+                    <div key={i} style={{ padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-1)' }}>
+                        {item.line ? `Line ${item.line}: ` : ''}{item.issue}
+                      </div>
+                      <div style={{ fontSize: 12, color: 'var(--success)' }}>💡 Fix: {item.fix}</div>
+                    </div>
+                  ))}
+                </div>
+              </details>
+            );
+          })}
+        </div>
+        {review.fixed_code && (
           <details style={{ marginTop: 12 }}>
             <summary style={{ fontSize: 12, fontWeight: 600, cursor: 'pointer', color: 'var(--primary)' }}>✨ View fixed code</summary>
-            <pre className="code-block" style={{ marginTop: 8, fontSize: 12 }}>{review.fixedCode}</pre>
+            <pre className="code-block" style={{ marginTop: 8, fontSize: 12 }}>{review.fixed_code}</pre>
+            <button onClick={() => onApplyFix(review.fixed_code)} className="btn btn-primary btn-sm" style={{ marginTop: 12, width: '100%' }}>Apply AI Fixes to Snippet</button>
           </details>
         )}
       </div>
@@ -92,6 +100,16 @@ export default function Snippets() {
       setForm({ title: '', language: 'javascript', code: '', tags: '', description: '', linkedTaskId: '' });
       toast.success('Snippet saved!');
     } catch { toast.error('Failed to create snippet'); }
+  }
+
+  async function applyFixToSnippet(fixedCode) {
+    if (!selected) return;
+    try {
+      const r = await api.put(`/snippets/${selected._id}`, { code: fixedCode });
+      setSnippets(p => p.map(s => s._id === selected._id ? { ...r.data, aiReview: selected.aiReview } : s));
+      setSelected({ ...r.data, aiReview: selected.aiReview });
+      toast.success('Snippet updated with AI fixes!');
+    } catch { toast.error('Failed to apply fix'); }
   }
 
   async function runAiReview(snippet) {
@@ -196,7 +214,7 @@ export default function Snippets() {
             {selected.description && <p style={{ color: 'var(--text-2)', fontSize: 13, marginBottom: 14 }}>{selected.description}</p>}
             {selected.tags?.length > 0 && <div style={{ display: 'flex', gap: 4, marginBottom: 14 }}>{selected.tags.map(t => <span key={t} className="label-chip">{t}</span>)}</div>}
             <CodeHighlight code={selected.code} language={selected.language} />
-            <ReviewPanel review={selected.aiReview} loading={reviewLoading} />
+            <ReviewPanel review={selected.aiReview} loading={reviewLoading} onApplyFix={applyFixToSnippet} />
           </div>
         )}
       </div>

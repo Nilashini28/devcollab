@@ -7,6 +7,8 @@ import { useAuth } from '../context/AuthContext';
 import { getSocket } from '../utils/socket';
 import api from '../utils/api';
 import toast from 'react-hot-toast';
+import Shepherd from 'shepherd.js';
+import 'shepherd.js/dist/css/shepherd.css';
 import { format, isPast, isToday } from 'date-fns';
 import { Avatar } from '../components/Layout';
 
@@ -17,7 +19,7 @@ const COLUMNS = [
   { id: 'done', label: 'Done', color: '#10b981' },
 ];
 
-function TaskCard({ task, onClick, isDragging }) {
+function TaskCard({ task, onClick, isDragging, remoteDragging, taskViewers }) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: task._id });
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1 };
   const overdue = task.dueDate && isPast(new Date(task.dueDate)) && task.status !== 'done';
@@ -25,11 +27,11 @@ function TaskCard({ task, onClick, isDragging }) {
 
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}
-      className={`task-card ${overdue ? 'overdue' : ''}`}
+      className={`task-card ${overdue ? 'overdue' : ''} ${remoteDragging ? 'remote-dragging' : ''}`}
       onClick={() => onClick(task)}>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 8 }}>
         <div style={{ fontSize: 13, fontWeight: 500, lineHeight: 1.4, flex: 1 }}>{task.title}</div>
-        <span className={`priority-dot priority-dot-${task.priority}`} title={task.priority} style={{ flexShrink: 0, marginTop: 4 }} />
+        <span className={`badge badge-${task.priority}`} title={`Priority ${task.priority}`} style={{ flexShrink: 0 }}>{task.priority}</span>
       </div>
       {task.labels?.length > 0 && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 8 }}>
@@ -47,13 +49,27 @@ function TaskCard({ task, onClick, isDragging }) {
           <span style={{ fontSize: 11, color: overdue ? 'var(--danger)' : isToday(new Date(task.dueDate)) ? 'var(--warning)' : 'var(--text-3)', fontWeight: overdue ? 600 : 400 }}>
             {overdue ? '⚠ ' : ''}{format(new Date(task.dueDate), 'MMM d')}
           </span>
+        ) : (
+          <span style={{ fontSize: 11, color: 'var(--text-3)' }}>Created {format(new Date(task.createdAt || Date.now()), 'MMM d')}</span>
         )}
-      </div>
+            </div>
+      {remoteDragging && (
+        <div style={{ position: 'absolute', inset: 0, background: 'rgba(255,255,255,0.7)', backdropFilter: 'blur(2px)', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, zIndex: 10 }}>
+          <div style={{ background: 'var(--surface)', padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600, color: 'var(--primary)', border: '1px solid var(--primary-light)', boxShadow: 'var(--shadow-sm)' }}>
+            Being moved by {remoteDragging}...
+          </div>
+        </div>
+      )}
+      {taskViewers && taskViewers.length > 0 && (
+        <div style={{ position: 'absolute', top: -10, right: -10, background: 'var(--primary)', color: 'white', padding: '2px 8px', borderRadius: 12, fontSize: 10, fontWeight: 600, boxShadow: 'var(--shadow-sm)', zIndex: 10, animation: 'fadeIn 0.2s ease-out' }}>
+          👁 {taskViewers[0]} {taskViewers.length > 1 ? `+${taskViewers.length-1}` : ''} viewing
+        </div>
+      )}
     </div>
   );
 }
 
-function KanbanColumn({ column, tasks, onTaskClick, activeId }) {
+function KanbanColumn({ column, tasks, onTaskClick, activeId, remoteDraggingState = {}, taskViewersState = {} }) {
   const { setNodeRef } = useSortable({ id: column.id });
   const wip = column.wipLimit && tasks.length >= column.wipLimit;
 
@@ -69,7 +85,7 @@ function KanbanColumn({ column, tasks, onTaskClick, activeId }) {
       </div>
       <SortableContext items={tasks.map(t => t._id)} strategy={verticalListSortingStrategy}>
         {tasks.map(task => (
-          <TaskCard key={task._id} task={task} onClick={onTaskClick} isDragging={activeId === task._id} />
+          <TaskCard key={task._id} task={task} onClick={onTaskClick} isDragging={activeId === task._id} remoteDragging={remoteDraggingState[task._id]} taskViewers={taskViewersState[task._id]} />
         ))}
       </SortableContext>
       {tasks.length === 0 && (
@@ -90,6 +106,7 @@ function TaskModal({ task, project, members, onClose, onUpdate, onDelete }) {
   const [aiLinks, setAiLinks] = useState([]);
   const [showAiBreakdown, setShowAiBreakdown] = useState(false);
   const [breakdown, setBreakdown] = useState(null);
+  const [generatingCommit, setGeneratingCommit] = useState(false);
   const [breakdownLoading, setBreakdownLoading] = useState(false);
   const [viewers, setViewers] = useState([]);
   const [typing, setTyping] = useState(null);
@@ -170,6 +187,16 @@ function TaskModal({ task, project, members, onClose, onUpdate, onDelete }) {
     finally { setSubmitting(false); }
   }
 
+  async function generateCommit() {
+    setGeneratingCommit(true);
+    try {
+      const r = await api.post('/ai/commit-message', { task: { title: form.title, description: form.description } });
+      await navigator.clipboard.writeText(r.data.message);
+      toast.success('Commit message copied!');
+    } catch { toast.error('Failed to generate commit'); }
+    finally { setGeneratingCommit(false); }
+  }
+
   async function generateBreakdown() {
     setBreakdownLoading(true);
     setShowAiBreakdown(true);
@@ -244,7 +271,19 @@ function TaskModal({ task, project, members, onClose, onUpdate, onDelete }) {
 
             {showAiBreakdown && (
               <div style={{ marginBottom: 20, background: 'var(--primary-light)', border: '1px solid var(--primary)', borderRadius: 'var(--radius)', padding: 14 }}>
-                <div style={{ fontWeight: 600, marginBottom: 10, fontSize: 13 }}>🤖 AI Generated Subtasks</div>
+                <div style={{ fontWeight: 600, marginBottom: 10, fontSize: 13, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+    <span>🤖 AI Task Breakdown</span>
+    {breakdown?.tasks?.length > 0 && (
+      <button onClick={async () => {
+        try {
+          await api.post('/tasks/bulk', { projectId: project._id, tasks: breakdown.tasks });
+          toast.success(`${breakdown.tasks.length} tasks created on board`);
+          setBreakdown({ tasks: [] });
+          setShowAiBreakdown(false);
+        } catch { toast.error('Failed to create tasks'); }
+      }} className="btn btn-sm btn-primary">Create All on Board</button>
+    )}
+  </div>
                 {breakdownLoading ? <div style={{ color: 'var(--text-2)' }}>Generating...</div> : breakdown?.tasks?.map((t, i) => (
                   <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid var(--border)' }}>
                     <div>
@@ -252,7 +291,10 @@ function TaskModal({ task, project, members, onClose, onUpdate, onDelete }) {
                       <span style={{ marginLeft: 8, fontSize: 13 }}>{t.title}</span>
                       {t.isDuplicate && <span style={{ marginLeft: 6, fontSize: 11, color: 'var(--warning)' }}>⚠ duplicate</span>}
                     </div>
-                    <button onClick={() => acceptSubtask(t)} className="btn btn-sm btn-primary" disabled={t.isDuplicate}>+ Add</button>
+                    <button onClick={() => {
+    setBreakdown(p => ({...p, tasks: p.tasks.filter((_, idx) => idx !== i)}));
+  }} className="btn btn-sm" style={{color: 'var(--danger)', marginRight: 6}}>✕</button>
+  <button onClick={() => acceptSubtask(t)} className="btn btn-sm btn-primary" disabled={t.isDuplicate}>+ Add to Task</button>
                   </div>
                 ))}
                 <button onClick={() => setShowAiBreakdown(false)} className="btn btn-ghost btn-sm" style={{ marginTop: 8 }}>Close</button>
@@ -535,6 +577,10 @@ export default function ProjectBoard() {
   const [search, setSearch] = useState('');
   const [view, setView] = useState('kanban');
   const [cursors, setCursors] = useState({});
+  const [remoteDragging, setRemoteDragging] = useState({});
+  const [taskViewers, setTaskViewers] = useState({});
+  const [projectSummary, setProjectSummary] = useState(null);
+  const [summaryLoading, setSummaryLoading] = useState(false);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
@@ -548,6 +594,10 @@ export default function ProjectBoard() {
     s.on('task:created', task => setTasks(prev => [...prev, task]));
     s.on('task:deleted', ({ _id }) => setTasks(prev => prev.filter(t => t._id !== _id)));
     s.on('cursor:move', (data) => setCursors(prev => ({ ...prev, [data.socketId]: data })));
+    s.on('card-drag-start', ({ cardId, userName }) => setRemoteDragging(p => ({ ...p, [cardId]: userName })));
+    s.on('card-drag-end', ({ cardId }) => setRemoteDragging(p => { const next = {...p}; delete next[cardId]; return next; }));
+    s.on('task:viewing', ({ taskId, userName }) => setTaskViewers(p => ({ ...p, [taskId]: [...new Set([...(p[taskId]||[]), userName])] })));
+    s.on('task:stopped-viewing', ({ taskId, userName }) => setTaskViewers(p => ({ ...p, [taskId]: (p[taskId]||[]).filter(u => u !== userName) })));
     s.on('task:reordered', updatedTasks => {
       setTasks(prev => {
         const map = new Map(updatedTasks.map(t => [t._id, t]));
@@ -556,7 +606,7 @@ export default function ProjectBoard() {
     });
     return () => {
       s.emit('leave:project', { projectId });
-      s.off('presence:update'); s.off('task:moved'); s.off('task:updated'); s.off('task:created'); s.off('task:deleted'); s.off('task:reordered'); s.off('cursor:move');
+      s.off('presence:update'); s.off('task:moved'); s.off('task:updated'); s.off('task:created'); s.off('task:deleted'); s.off('task:reordered'); s.off('cursor:move'); s.off('card-drag-start'); s.off('card-drag-end'); s.off('task:viewing'); s.off('task:stopped-viewing');
     };
   }, [projectId]);
 
@@ -594,9 +644,14 @@ export default function ProjectBoard() {
     ));
   }
 
-  function handleDragStart({ active }) { setActiveId(active.id); }
+  function handleDragStart({ active }) { 
+    setActiveId(active.id); 
+    const t = tasks.find(x => x._id === active.id);
+    if (t) getSocket().emit('card-drag-start', { cardId: active.id, cardTitle: t.title, userId: user._id, userName: user.name, projectId });
+  }
 
   async function handleDragEnd({ active, over }) {
+    getSocket().emit('card-drag-end', { cardId: active?.id, projectId });
     setActiveId(null);
     if (!over) return;
 
@@ -674,12 +729,13 @@ export default function ProjectBoard() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           {/* Presence */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            {presence.filter(p => p.userId !== user._id).slice(0, 4).map((p, i) => (
+            {presence.slice(0, 8).map((p, i) => (
               <div key={i} style={{ position: 'relative' }}>
-                <div className="avatar avatar-sm" title={p.userName} style={{ background: '#6366f1', border: '2px solid var(--surface)' }}>{p.userName?.charAt(0)}</div>
+                <div className="avatar avatar-sm" title={p.userName} style={{ background: '#6366f1', border: '2px solid var(--surface)' }}>{p.avatar ? <img src={p.avatar} style={{width:'100%', height:'100%', borderRadius:'50%'}}/> : p.userName?.charAt(0)}</div>
+   <div style={{ position: 'absolute', bottom: 0, right: 0, width: 8, height: 8, background: '#10b981', border: '1px solid var(--surface)', borderRadius: '50%', animation: 'pulse 2s infinite' }} />
               </div>
             ))}
-            {presence.length > 1 && <span style={{ fontSize: 11, color: 'var(--text-3)' }}>{presence.length} online</span>}
+            {presence.length > 8 && <span style={{ fontSize: 11, color: 'var(--text-3)', fontWeight: 600 }}>+{presence.length - 8} more</span>}
           </div>
           {/* Filters */}
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search tasks..." style={{ width: 140, padding: '5px 10px', fontSize: 12 }} />
@@ -700,18 +756,42 @@ export default function ProjectBoard() {
               </button>
             ))}
           </div>
-          <button onClick={() => setShowCreate(true)} className="btn btn-primary btn-sm">+ Task</button>
+          <button onClick={async () => {
+    setSummaryLoading(true);
+    try { const r = await api.post('/ai/project-summary', { projectId }); setProjectSummary(r.data.summary); }
+    catch { toast.error('AI unavailable'); } finally { setSummaryLoading(false); }
+  }} className="btn btn-secondary btn-sm" disabled={summaryLoading}>{summaryLoading ? '...' : '🤖 Summary'}</button>
+  <button onClick={() => setShowCreate(true)} className="btn btn-primary btn-sm">+ Task</button>
         </div>
       </div>
-
-      {view === 'kanban' ? (
-        <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-          <div className="kanban-board">
-            {COLUMNS.map(col => (
-              <KanbanColumn key={col.id} column={col} tasks={getColumnTasks(col.id)} onTaskClick={setSelectedTask} activeId={activeId} />
-            ))}
+      {projectSummary && (
+        <div style={{ padding: '12px 24px', background: 'var(--primary-light)', borderBottom: '1px solid var(--border)', fontSize: 13, animation: 'fadeIn 0.2s ease-out' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div><div style={{ fontWeight: 700, marginBottom: 4, color: 'var(--primary)' }}>🤖 AI Project Summary</div><div style={{ color: 'var(--text-1)' }}>{projectSummary}</div></div>
+            <button onClick={() => setProjectSummary(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-3)' }}>✕</button>
           </div>
-        </DndContext>
+        </div>
+      )}
+      {view === 'kanban' ? (
+        tasks.length === 0 && !loading ? (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '50vh', color: 'var(--text-3)' }}>
+            <div style={{ fontSize: 48, marginBottom: 16 }}>📝</div>
+            <h3 style={{ marginBottom: 8, color: 'var(--text-1)' }}>No tasks in this project yet</h3>
+            <p style={{ marginBottom: 20 }}>Break down your work into manageable pieces</p>
+            <button onClick={() => setShowCreate(true)} className="btn btn-primary">+ Create First Task</button>
+          </div>
+        ) : (
+        <div className="kanban-board">
+          <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+            {COLUMNS.map(col => (
+              <KanbanColumn key={col.id} column={col} tasks={getColumnTasks(col.id)} onTaskClick={setSelectedTask} activeId={activeId} remoteDraggingState={remoteDragging} taskViewersState={taskViewers} />
+            ))}
+            <DragOverlay>
+              {activeId ? <TaskCard task={tasks.find(t => t._id === activeId)} isDragging /> : null}
+            </DragOverlay>
+          </DndContext>
+        </div>
+        )
       ) : (
         <div style={{ padding: 20 }}>
           <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
@@ -745,7 +825,7 @@ export default function ProjectBoard() {
 
       {selectedTask && (
           <TaskModal task={selectedTask} project={project} members={members}
-          onClose={() => setSelectedTask(null)}
+          onClose={() => { getSocket().emit('task:stopped-viewing', { projectId, taskId: selectedTask._id, userName: user.name }); setSelectedTask(null); }}
           onUpdate={updated => { setTasks(prev => prev.map(t => t._id === updated._id ? updated : t)); setSelectedTask(updated); }}
           onDelete={async id => { await api.delete(`/tasks/${id}`); setTasks(prev => prev.filter(t => t._id !== id)); }} />
       )}

@@ -5,6 +5,8 @@ import { useTheme } from '../context/ThemeContext';
 import { getSocket } from '../utils/socket';
 import api from '../utils/api';
 import toast from 'react-hot-toast';
+import { Command } from 'cmdk';
+import './cmdk.css';
 
 function Avatar({ user, size = '' }) {
   const initials = user?.name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || '?';
@@ -33,6 +35,9 @@ export default function Layout() {
   const [showDevMind, setShowDevMind] = useState(false);
   const [devMindAlerts, setDevMindAlerts] = useState([]);
   const [activeProjectId, setActiveProjectId] = useState(null);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
 
   useEffect(() => {
     loadWorkspaces();
@@ -54,6 +59,31 @@ export default function Layout() {
       loadDevMind(match[1]);
     }
   }, [location.pathname]);
+
+  useEffect(() => {
+    const down = (e) => {
+      if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        setSearchOpen((open) => !open);
+      }
+    };
+    document.addEventListener('keydown', down);
+    return () => document.removeEventListener('keydown', down);
+  }, []);
+
+  useEffect(() => {
+    if (!searchQuery || !activeWorkspace) {
+      setSearchResults([]);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      try {
+        const r = await api.get(`/search?q=${encodeURIComponent(searchQuery)}&workspaceId=${activeWorkspace._id}`);
+        setSearchResults(r.data);
+      } catch (e) {}
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery, activeWorkspace]);
 
   async function loadWorkspaces() {
     try {
@@ -176,7 +206,11 @@ export default function Layout() {
       <div className="main-content" style={{ flex: 1 }}>
         {/* Top bar */}
         <div style={{ height: 56, background: 'var(--surface)', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', padding: '0 20px', gap: 12, position: 'sticky', top: 0, zIndex: 50 }}>
-          <div style={{ position: 'relative' }}>
+          <button onClick={() => setSearchOpen(true)} style={{ flex: 1, maxWidth: 300, background: 'var(--surface-3)', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', padding: '6px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: 'var(--text-3)', cursor: 'text', marginRight: 'auto' }}>
+    <span style={{ fontSize: 13 }}>Search...</span>
+    <kbd style={{ background: 'var(--surface)', padding: '2px 6px', borderRadius: 4, fontSize: 10, fontFamily: 'monospace', border: '1px solid var(--border)', color: 'var(--text-2)' }}>⌘K</kbd>
+  </button>
+  <div style={{ position: 'relative' }}>
             <button onClick={() => { setShowNotifs(!showNotifs); if (!showNotifs && unread > 0) markAllRead(); }} style={{ position: 'relative', padding: 8, borderRadius: 8, color: 'var(--text-2)' }}>
               🔔
               {unread > 0 && <span style={{ position: 'absolute', top: 2, right: 2, background: 'var(--danger)', color: 'white', borderRadius: '99px', fontSize: 9, fontWeight: 700, padding: '0 4px', minWidth: 14, textAlign: 'center' }}>{unread}</span>}
@@ -218,6 +252,27 @@ export default function Layout() {
         )}
 
         <Outlet />
+            <Command.Dialog open={searchOpen} onOpenChange={setSearchOpen} label="Global Search">
+        <Command.Input value={searchQuery} onValueChange={setSearchQuery} placeholder="Search tasks, snippets, wiki..." />
+        <Command.List>
+          {searchQuery && searchResults.length === 0 && <Command.Empty>No results found.</Command.Empty>}
+          {searchResults.map((res) => (
+            <Command.Item key={res.type + res.id} value={res.title} onSelect={() => {
+              setSearchOpen(false);
+              setSearchQuery('');
+              if (res.type === 'task') { navigate(`/project/${res.projectId}`); /* you could open modal here if we had global state */ }
+              else if (res.type === 'snippet') navigate(`/project/${res.projectId}/snippets`);
+              else if (res.type === 'wiki') navigate(`/project/${res.projectId}/wiki`);
+            }}>
+              <span style={{ fontSize: 18 }}>{res.type === 'task' ? '📝' : res.type === 'snippet' ? '💻' : '📚'}</span>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 500 }}>{res.title}</div>
+                <div style={{ fontSize: 11, color: 'var(--text-3)' }}>{res.type} {res.badge ? `· ${res.badge}` : ''}</div>
+              </div>
+            </Command.Item>
+          ))}
+        </Command.List>
+      </Command.Dialog>
       </div>
     </div>
   );

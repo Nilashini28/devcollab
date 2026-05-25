@@ -12,6 +12,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [showNewProject, setShowNewProject] = useState(false);
   const [activeWs, setActiveWs] = useState(null);
+  const [activities, setActivities] = useState([]);
   const [newProject, setNewProject] = useState({ name: '', description: '', techStack: '', colourLabel: '#6366f1' });
 
   useEffect(() => { loadData(); }, []);
@@ -25,6 +26,11 @@ export default function Dashboard() {
         const pRes = await api.get(`/projects?workspaceId=${wsRes.data[0]._id}`);
         setProjects(pRes.data);
       }
+      
+      try {
+        const aRes = await api.get('/activity');
+        setActivities(aRes.data);
+      } catch (e) {}
     } catch (e) { toast.error('Failed to load workspace'); }
     finally { setLoading(false); }
   }
@@ -85,7 +91,8 @@ export default function Dashboard() {
           <button onClick={createWorkspace} className="btn btn-primary">Create workspace</button>
         </div>
       ) : (
-        <>
+        <div style={{ display: 'flex', gap: 32, alignItems: 'flex-start' }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
           {workspaces.length > 1 && (
             <div style={{ display: 'flex', gap: 8, marginBottom: 20, overflowX: 'auto' }}>
               {workspaces.map(ws => (
@@ -129,6 +136,30 @@ export default function Dashboard() {
               ))}
             </div>
           )}
+          </div>
+          
+          {/* Activity Feed */}
+          <div style={{ width: 320, flexShrink: 0, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: 20 }}>
+            <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 16 }}>Recent Activity</h3>
+            {activities.length === 0 ? (
+              <div style={{ fontSize: 13, color: 'var(--text-3)', textAlign: 'center', padding: '20px 0' }}>No recent activity</div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                {activities.slice(0, 8).map(act => (
+                  <div key={act._id} style={{ display: 'flex', gap: 12 }}>
+                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--primary)', marginTop: 6 }} />
+                    <div>
+                      <div style={{ fontSize: 13, color: 'var(--text-1)' }}>
+                        <span style={{ fontWeight: 600 }}>{act.actorId?.name}</span> {act.type.replace(':', ' ')} {act.payload?.title || act.payload?.pageId || ''}
+                      </div>
+                      <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 2 }}>{new Date(act.createdAt).toLocaleString()}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
         </>
       )}
 

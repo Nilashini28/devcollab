@@ -11,6 +11,7 @@ export default function Wiki() {
   const [content, setContent] = useState('');
   const [title, setTitle] = useState('');
   const [loading, setLoading] = useState(true);
+  const [pageLoading, setPageLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [newTitle, setNewTitle] = useState('');
@@ -18,6 +19,7 @@ export default function Wiki() {
   const [aiSummary, setAiSummary] = useState(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [search, setSearch] = useState('');
+  const [prLoading, setPrLoading] = useState(false);
 
   useEffect(() => { loadPages(); }, [projectId]);
 
@@ -31,6 +33,7 @@ export default function Wiki() {
   }
 
   async function loadPage(id) {
+    setPageLoading(true);
     try {
       const r = await api.get(`/wiki/${id}`);
       setSelected(r.data);
@@ -39,6 +42,7 @@ export default function Wiki() {
       setEditing(false);
       setAiSummary(null);
     } catch { toast.error('Failed to load page'); }
+    finally { setPageLoading(false); }
   }
 
   async function savePage() {
@@ -70,6 +74,24 @@ export default function Wiki() {
     setPages(prev => prev.filter(p => p._id !== selected._id));
     setSelected(null);
     toast.success('Page deleted');
+  }
+
+  async function generatePrTemplate() {
+    setPrLoading(true);
+    try {
+      const tr = await api.get(`/tasks?projectId=${projectId}`);
+      const tasks = tr.data.filter(t => t.status === 'done' || t.status === 'inprogress');
+      const taskTitles = tasks.map(t => t.title).join(', ');
+      
+      const r = await api.post('/ai/pr-description', { taskTitle: taskTitles });
+      const prTitle = r.data.title || 'Draft PR';
+      
+      const w = await api.post('/wiki', { projectId, title: prTitle, content: r.data.markdownBody });
+      setPages(prev => [...prev, w.data]);
+      loadPage(w.data._id);
+      toast.success('PR template created!');
+    } catch { toast.error('Failed to generate PR template'); }
+    finally { setPrLoading(false); }
   }
 
   async function generateSummary() {
@@ -144,6 +166,9 @@ export default function Wiki() {
                 <button onClick={generateSummary} className="btn btn-secondary btn-sm" disabled={summaryLoading}>
                   {summaryLoading ? '...' : '🤖 Summary'}
                 </button>
+                <button onClick={generatePrTemplate} className="btn btn-secondary btn-sm" disabled={prLoading}>
+                  {prLoading ? '...' : '🚀 Gen PR Template'}
+                </button>
                 <button onClick={() => setShowHistory(!showHistory)} className="btn btn-secondary btn-sm">
                   🕒 History ({selected.versions?.length || 0})
                 </button>
@@ -164,19 +189,32 @@ export default function Wiki() {
             <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
               {/* Main content */}
               <div style={{ flex: 1, overflow: 'auto', padding: 28 }}>
-                {aiSummary && (
-                  <div style={{ marginBottom: 20, background: 'var(--info-light)', border: '1px solid var(--info)', borderRadius: 'var(--radius)', padding: 14 }}>
-                    <div style={{ fontWeight: 700, marginBottom: 8, fontSize: 13 }}>🤖 AI Summary</div>
-                    {aiSummary.map((b, i) => <div key={i} style={{ fontSize: 13, padding: '3px 0' }}>• {b}</div>)}
-                    <button onClick={() => setAiSummary(null)} style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 8 }}>Dismiss</button>
+                {pageLoading ? (
+                  <div>
+                    <div className="skeleton" style={{ height: 48, width: '60%', marginBottom: 32, borderRadius: 8 }} />
+                    <div className="skeleton" style={{ height: 16, width: '100%', marginBottom: 12, borderRadius: 4 }} />
+                    <div className="skeleton" style={{ height: 16, width: '90%', marginBottom: 12, borderRadius: 4 }} />
+                    <div className="skeleton" style={{ height: 16, width: '95%', marginBottom: 12, borderRadius: 4 }} />
+                    <div className="skeleton" style={{ height: 16, width: '80%', marginBottom: 32, borderRadius: 4 }} />
+                    <div className="skeleton" style={{ height: 200, width: '100%', borderRadius: 8 }} />
                   </div>
-                )}
-                {editing ? (
-                  <textarea value={content} onChange={e => setContent(e.target.value)}
-                    style={{ width: '100%', minHeight: 'calc(100vh - 200px)', border: '1.5px solid var(--border)', borderRadius: 'var(--radius)', padding: 16, fontFamily: 'monospace', fontSize: 13, resize: 'none', lineHeight: 1.7, background: 'var(--surface)' }}
-                    placeholder="Write in Markdown..." />
                 ) : (
-                  <div style={{ maxWidth: 720, lineHeight: 1.7 }} dangerouslySetInnerHTML={{ __html: renderMarkdown(content) }} />
+                  <>
+                    {aiSummary && (
+                      <div style={{ marginBottom: 20, background: 'var(--info-light)', border: '1px solid var(--info)', borderRadius: 'var(--radius)', padding: 14 }}>
+                        <div style={{ fontWeight: 700, marginBottom: 8, fontSize: 13 }}>🤖 AI Summary</div>
+                        {aiSummary.map((b, i) => <div key={i} style={{ fontSize: 13, padding: '3px 0' }}>• {b}</div>)}
+                        <button onClick={() => setAiSummary(null)} style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 8 }}>Dismiss</button>
+                      </div>
+                    )}
+                    {editing ? (
+                      <textarea value={content} onChange={e => setContent(e.target.value)}
+                        style={{ width: '100%', minHeight: 'calc(100vh - 200px)', border: '1.5px solid var(--border)', borderRadius: 'var(--radius)', padding: 16, fontFamily: 'monospace', fontSize: 13, resize: 'none', lineHeight: 1.7, background: 'var(--surface)' }}
+                        placeholder="Write in Markdown..." />
+                    ) : (
+                      <div style={{ maxWidth: 720, lineHeight: 1.7 }} dangerouslySetInnerHTML={{ __html: renderMarkdown(content) }} />
+                    )}
+                  </>
                 )}
               </div>
 

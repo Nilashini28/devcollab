@@ -19,20 +19,35 @@ const setCache = (key, data) => aiCache.set(key, { data, ts: Date.now() });
 
 async function callClaude(systemPrompt, userPrompt, maxTokens = 1000) {
   if (systemPrompt.includes("standup report")) {
-    return JSON.stringify({
-      date: new Date().toDateString(),
-      yesterday: [{ member: "Alex Rivera", completed: ["Set up Kanban board"] }],
-      today: [{ member: "Alex Rivera", inProgress: ["Implement Socket.IO"] }],
-      blockers: [],
-      flags: ["No blockers reported"]
-    });
+    // Parse the user prompt to get real data
+    let yesterday = [];
+    let today = [];
+    let blockers = [];
+    
+    try {
+      const parts = userPrompt.split("Yesterday's updates: ");
+      if (parts.length > 1) {
+        const events = JSON.parse(parts[1].split("Current blockers")[0].trim());
+        yesterday = events.slice(0, 3).map(e => ({ member: e.actor, completed: [e.type] }));
+      }
+      
+      const blockerPart = userPrompt.split("Current blockers (in progress >3 days): ");
+      if (blockerPart.length > 1) {
+        const b = JSON.parse(blockerPart[1].trim());
+        blockers = b.map(t => ({ task: t.title, reason: "In progress for too long", assignee: t.assignee }));
+      }
+    } catch(e) {}
+
+    return `## Yesterday\n${yesterday.length ? yesterday.map(y => `- **${y.member}**: ${y.completed.join(', ')}`).join('\\n') : '- No major updates'}\n\n## Today\n- Continuing active tasks\n\n## Blockers\n${blockers.length ? blockers.map(b => `- **${b.task}** (${b.assignee}): ${b.reason}`).join('\\n') : '- No blockers reported'}`;
   } else if (systemPrompt.includes("code reviewer")) {
     return JSON.stringify({
       score: 8,
-      summary: "The code looks solid, but could use some minor improvements.",
-      issues: [{ type: "style", severity: "info", line: 1, message: "Consider adding a comment" }],
-      suggestions: ["Add documentation"],
-      fixedCode: userPrompt
+      summary: "Code structure is good but lacks error handling.",
+      bugs: [{ line: 1, issue: "Missing try/catch", fix: "Wrap in try/catch block" }],
+      performance: [{ issue: "Synchronous loop", fix: "Use async/await" }],
+      security: [{ issue: "No validation", fix: "Add input validation" }],
+      readability: [{ issue: "Vague variable names", fix: "Use descriptive names" }],
+      fixed_code: userPrompt + "\\n// Fixed by AI"
     });
   } else if (systemPrompt.includes("sprint analyst")) {
     return JSON.stringify({
@@ -45,21 +60,34 @@ async function callClaude(systemPrompt, userPrompt, maxTokens = 1000) {
       retrospective: { wentWell: ["Team collaboration"], didntGoWell: ["Some delays"], patterns: ["Code reviews are slow"], recommendations: ["Pair programming"] },
       summary: "Sprint is on track with good velocity."
     });
-  } else if (systemPrompt.includes("technical project manager") && systemPrompt.includes("subtasks")) {
-    return JSON.stringify({
-      tasks: [
-        { title: "Research requirements", description: "Look into feature reqs", priority: "P1", suggested_assignee: null, effort: "S", isDuplicate: false },
-        { title: "Implementation", description: "Write the code", priority: "P0", suggested_assignee: null, effort: "L", isDuplicate: false }
-      ]
-    });
+  } else if (systemPrompt.includes("technical project manager") && userPrompt.includes("subtasks")) {
+    const match = userPrompt.match(/subtasks:\s*'(.*?)'/);
+    const feature = match ? match[1].substring(0,20) : "Feature";
+    return JSON.stringify([
+      { title: `Design schema for ${feature}`, description: `Database design`, priority: "P1", estimatedHours: 2, labels: ["backend"] },
+      { title: `Implement API for ${feature}`, description: `Create routes`, priority: "P0", estimatedHours: 4, labels: ["api"] },
+      { title: `Frontend UI for ${feature}`, description: `Build components`, priority: "P1", estimatedHours: 3, labels: ["frontend"] },
+      { title: `Write tests for ${feature}`, description: `Ensure coverage`, priority: "P2", estimatedHours: 2, labels: ["testing"] },
+      { title: `Integration for ${feature}`, description: `Connect parts`, priority: "P0", estimatedHours: 3, labels: ["integration"] }
+    ]);
   } else if (systemPrompt.includes("DevMind")) {
-    return JSON.stringify({
-      alerts: [
-        { id: "1", type: "stale", severity: "medium", title: "Task stale", message: "A task has been in progress for a long time.", action: "Review", actionLink: "BOARD" },
-        { id: "2", type: "wiki", severity: "low", title: "Wiki Outdated", message: "Project documentation hasn't been updated recently.", action: "Update Wiki", actionLink: "WIKI" },
-        { id: "3", type: "sprint", severity: "high", title: "Sprint at Risk", message: "Several tasks are overdue and blockers detected.", action: "View Sprint", actionLink: "SPRINT" }
-      ]
-    });
+    let alerts = [];
+    try {
+      const staleMatch = userPrompt.match(/Tasks: (\[.*?\])/);
+      if (staleMatch) {
+        const tasks = JSON.parse(staleMatch[1]);
+        alerts = tasks.filter(t => t.daysInColumn > 3).map(t => ({
+          id: t._id || Math.random().toString(),
+          type: "stale", severity: "medium", title: `Stale Task: ${t.title}`,
+          message: `This task has been stuck for ${t.daysInColumn} days.`,
+          action: "Review", actionLink: "BOARD"
+        }));
+      }
+    } catch(e) {}
+    if (alerts.length === 0) {
+      alerts.push({ id: "1", type: "stale", severity: "medium", title: "Task stale", message: "A task has been in progress for a long time.", action: "Review", actionLink: "BOARD" });
+    }
+    return JSON.stringify({ alerts });
   } else if (systemPrompt.includes("semantic similarity")) {
     return JSON.stringify({ suggestions: [] });
   } else if (systemPrompt.includes("senior software architect")) {
@@ -74,25 +102,18 @@ async function callClaude(systemPrompt, userPrompt, maxTokens = 1000) {
   } else if (systemPrompt.includes("technical writer")) {
     const match = userPrompt.match(/Content: ([\s\S]*?)Return ONLY valid JSON/);
     let bullets = ["Summary point 1", "Summary point 2", "Summary point 3"];
-    if (match && match[1]) {
-      const content = match[1].trim();
-      const sentences = content.split(/[\.\n]+/).map(s => s.trim().replace(/^#+\s*/, '').replace(/^-+\s*/, '')).filter(s => s.length > 10);
-      if (sentences.length > 0) {
-        bullets = sentences.slice(0, 3);
-      }
-    }
     return JSON.stringify({ bullets });
   } else if (systemPrompt.includes("pull request descriptions")) {
-    return JSON.stringify({
-      title: "Update files",
-      summary: "Fixed some bugs.",
-      changes: ["Updated logic"],
-      testingNotes: ["Run tests"],
-      breakingChanges: [],
-      markdownBody: "# PR\n\nFixed bugs."
-    });
+    const match = userPrompt.match(/Task: (.*?)\n/);
+    const title = match ? match[1] : "Update files";
+    return `## Summary\nImplemented ${title}.\n\n## Changes Made\n- Core logic\n- Tests added\n\n## How to Test\n1. Pull branch\n2. Run npm test\n\n## Screenshots\n(Placeholder)`;
   } else if (systemPrompt.includes("project management expert")) {
     return JSON.stringify({ suggestions: ["Better Title 1", "Better Title 2"] });
+  } else if (systemPrompt.includes("commit message")) {
+    return "feat(core): implement requested features";
+  } else if (systemPrompt.includes("unblocking")) {
+    const suggestion = "Consider breaking this task down into smaller chunks or asking a senior dev for a quick pair-programming session.";
+    return JSON.stringify({ suggestion });
   }
   
   return "{}";
@@ -160,11 +181,11 @@ Return ONLY valid JSON:
 {
   "score": 7,
   "summary": "brief summary",
-  "issues": [
-    { "type": "security|performance|duplication|style|bug", "severity": "critical|warning|info", "line": 1, "message": "description" }
-  ],
-  "suggestions": ["suggestion 1", "suggestion 2"],
-  "fixedCode": "corrected version of the code"
+  "bugs": [{ "line": 1, "issue": "description", "fix": "solution" }],
+  "performance": [{ "issue": "description", "fix": "solution" }],
+  "security": [{ "issue": "description", "fix": "solution" }],
+  "readability": [{ "issue": "description", "fix": "solution" }],
+  "fixed_code": "corrected version of the code"
 }`;
 
     const text = await callClaude(system, prompt, 2000);
@@ -250,7 +271,7 @@ Return ONLY valid JSON:
   "healthLabel": "Good|At Risk|Critical",
   "velocity": [{ "day": "Mon", "closed": 2 }],
   "velocityTrend": "improving|declining|stable",
-  "blockedTasks": [{ "title": "...", "daysInColumn": 4, "assignee": "..." }],
+  "blockedTasks": [{ "title": "...", "daysInColumn": 4, "assignee": "...", "suggestion": "one concrete unblocking action" }],
   "atRiskTasks": [{ "title": "...", "reason": "...", "confidence": 0.8 }],
   "retrospective": { "wentWell": ["..."], "didntGoWell": ["..."], "patterns": ["..."], "recommendations": ["..."] },
   "summary": "one sentence sprint health summary"
@@ -454,6 +475,43 @@ Make titles specific, action-oriented, and under 10 words.`;
     res.json(JSON.parse(clean));
   } catch (e) {
     res.status(500).json({ suggestions: [] });
+  }
+});
+
+// 11. Project Summary
+router.post('/project-summary', auth, aiLimiter, async (req, res) => {
+  try {
+    const { projectId } = req.body;
+    const project = await Project.findById(projectId).populate('workspaceId');
+    const tasks = await Task.find({ projectId });
+    
+    const todo = tasks.filter(t => t.status === 'todo').length;
+    const inprogress = tasks.filter(t => t.status === 'inprogress').length;
+    const inreview = tasks.filter(t => t.status === 'inreview').length;
+    const done = tasks.filter(t => t.status === 'done').length;
+    const memberCount = project.workspaceId?.members?.length || 0;
+    const createdDate = new Date(project.createdAt).toLocaleDateString();
+
+    const system = `You are a project manager. Return ONLY valid JSON.`;
+    const prompt = `Project: ${project.name}. Members: ${memberCount}. Tasks — To Do: ${todo}, In Progress: ${inprogress}, In Review: ${inreview}, Done: ${done}. Created: ${createdDate}. Summarise the current project status in 3 sentences. Return as { "summary": "..." }`;
+
+    const mockSummary = `The project '${project.name}' was created on ${createdDate} and currently involves ${memberCount} team members. There are ${tasks.length} total tasks, with ${done} completed and ${inprogress} actively in progress. The team needs to clear out the ${todo} pending tasks to maintain momentum.`;
+    res.json({ summary: mockSummary });
+  } catch (e) {
+    res.status(500).json({ error: 'AI unavailable' });
+  }
+});
+
+// 12. Commit Message
+router.post('/commit-message', auth, aiLimiter, async (req, res) => {
+  try {
+    const { title, description, labels } = req.body;
+    const system = `You are a Git expert generating commit messages. Return ONLY the commit message string, nothing else.`;
+    const prompt = `Generate a conventional commit message for this task. Title: '${title}'. Description: '${description}'. Labels: ${labels}. Format: type(scope): description`;
+    const text = await callClaude(system, prompt, 100);
+    res.json({ message: text });
+  } catch (e) {
+    res.status(500).json({ error: 'AI unavailable' });
   }
 });
 
