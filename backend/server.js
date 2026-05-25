@@ -15,12 +15,9 @@ const io = new Server(server, {
 });
 // backend/server.js — replace the generic cors() line
 app.use(cors({
-  origin: [
-    'http://localhost:3000',
-    'http://localhost:3001',
-    'http://127.0.0.1:3001',
-    'https://your-app.vercel.app'  // add your actual Vercel URL
-  ],
+  origin: function (origin, callback) {
+    callback(null, true);
+  },
   credentials: true
 }));
 app.use(express.json({ limit: '1mb' }));
