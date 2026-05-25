@@ -1,7 +1,7 @@
 const router = require('express').Router();
 const auth = require('../middleware/auth');
 const Anthropic = require('@anthropic-ai/sdk');
-const { Task, Snippet, WikiPage, Event, Notification } = require('../models/index');
+const { Project, Task, Snippet, WikiPage, Event, Notification } = require('../models/index');
 const { rateLimit } = require('express-rate-limit');
 
 const aiLimiter = rateLimit({ 
@@ -73,7 +73,7 @@ async function callClaude(systemPrompt, userPrompt, maxTokens = 1000) {
   } else if (systemPrompt.includes("DevMind")) {
     let alerts = [];
     try {
-      const staleMatch = userPrompt.match(/Tasks: (\[.*?\])/);
+      const staleMatch = userPrompt.match(/Tasks: (\[.*?\])/s);
       if (staleMatch) {
         const tasks = JSON.parse(staleMatch[1]);
         alerts = tasks.filter(t => t.daysInColumn > 3).map(t => ({
@@ -103,7 +103,7 @@ async function callClaude(systemPrompt, userPrompt, maxTokens = 1000) {
     const match = userPrompt.match(/Content: ([\s\S]*?)Return ONLY valid JSON/);
     let bullets = ["Summary point 1", "Summary point 2", "Summary point 3"];
     return JSON.stringify({ bullets });
-  } else if (systemPrompt.includes("pull request descriptions")) {
+  } else if (systemPrompt.includes("PR descriptions")) {
     const match = userPrompt.match(/Task: (.*?)\n/);
     const title = match ? match[1] : "Update files";
     return `## Summary\nImplemented ${title}.\n\n## Changes Made\n- Core logic\n- Tests added\n\n## How to Test\n1. Pull branch\n2. Run npm test\n\n## Screenshots\n(Placeholder)`;

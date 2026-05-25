@@ -93,6 +93,40 @@ router.post('/bulk', auth, async (req, res) => {
     res.status(500).json({ error: e.message });
   }
 });
+router.put('/reorder', auth, async (req, res) => {
+  try {
+    const { tasks } = req.body;
+
+    if (!Array.isArray(tasks)) {
+      return res.status(400).json({ error: 'Invalid payload' });
+    }
+
+    const bulkOps = tasks.map((t) => ({
+      updateOne: {
+        filter: { _id: t._id },
+        update: {
+          order: t.order,
+          status: t.status
+        }
+      }
+    }));
+
+    if (bulkOps.length > 0) {
+      await Task.bulkWrite(bulkOps);
+
+      const io = req.app.get('io');
+
+      io.to(`project:${req.body.projectId}`).emit(
+        'task:reordered',
+        tasks
+      );
+    }
+
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
 
 router.get('/:id', auth, async (req, res) => {
   try {
@@ -294,39 +328,5 @@ router.post('/:id/comments', auth, async (req, res) => {
   }
 });
 
-router.put('/reorder', auth, async (req, res) => {
-  try {
-    const { tasks } = req.body;
-
-    if (!Array.isArray(tasks)) {
-      return res.status(400).json({ error: 'Invalid payload' });
-    }
-
-    const bulkOps = tasks.map((t) => ({
-      updateOne: {
-        filter: { _id: t._id },
-        update: {
-          order: t.order,
-          status: t.status
-        }
-      }
-    }));
-
-    if (bulkOps.length > 0) {
-      await Task.bulkWrite(bulkOps);
-
-      const io = req.app.get('io');
-
-      io.to(`project:${req.body.projectId}`).emit(
-        'task:reordered',
-        tasks
-      );
-    }
-
-    res.json({ ok: true });
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-});
 
 module.exports = router;
