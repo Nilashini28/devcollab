@@ -100,8 +100,22 @@ async function callClaude(systemPrompt, userPrompt, maxTokens = 1000) {
       markdownContent: "# Architecture\n\nBasic overview."
     });
   } else if (systemPrompt.includes("technical writer")) {
-    const match = userPrompt.match(/Content: ([\s\S]*?)Return ONLY valid JSON/);
+    const match = userPrompt.match(/Content: ([\s\S]*?)\n\nReturn ONLY valid/);
     let bullets = ["Summary point 1", "Summary point 2", "Summary point 3"];
+    if (match && match[1]) {
+      const text = match[1].trim();
+      if (text) {
+        const lines = text.split(/[.\n]+/).map(l => l.trim().replace(/^[-*#]+\s*/, '')).filter(l => l.length > 5);
+        if (lines.length > 0) {
+          bullets = lines.slice(0, 3);
+          while (bullets.length < 3) bullets.push("Additional summary point");
+        } else {
+          bullets = ["The page has content but no long sentences.", "Consider adding more descriptive text.", "Review formatting."];
+        }
+      } else {
+        bullets = ["The page is currently empty.", "Add some text to generate a summary.", "Save the page and try again."];
+      }
+    }
     return JSON.stringify({ bullets });
   } else if (systemPrompt.includes("PR descriptions")) {
     const match = userPrompt.match(/Task: (.*?)\n/);
