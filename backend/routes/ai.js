@@ -106,7 +106,14 @@ async function callClaude(systemPrompt, userPrompt, maxTokens = 1000) {
   } else if (systemPrompt.includes("PR descriptions")) {
     const match = userPrompt.match(/Task: (.*?)\n/);
     const title = match ? match[1] : "Update files";
-    return `## Summary\nImplemented ${title}.\n\n## Changes Made\n- Core logic\n- Tests added\n\n## How to Test\n1. Pull branch\n2. Run npm test\n\n## Screenshots\n(Placeholder)`;
+    return JSON.stringify({
+      title: "Draft PR: " + title,
+      summary: "Implemented " + title,
+      changes: ["Core logic", "Tests added"],
+      testingNotes: ["Pull branch", "Run npm test"],
+      breakingChanges: [],
+      markdownBody: `## Summary\nImplemented ${title}.\n\n## Changes Made\n- Core logic\n- Tests added\n\n## How to Test\n1. Pull branch\n2. Run npm test\n\n## Screenshots\n(Placeholder)`
+    });
   } else if (systemPrompt.includes("project management expert")) {
     return JSON.stringify({ suggestions: ["Better Title 1", "Better Title 2"] });
   } else if (systemPrompt.includes("commit message")) {

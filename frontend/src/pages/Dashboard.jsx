@@ -147,7 +147,7 @@ export default function Dashboard() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 {activities.slice(0, 8).map(act => (
                   act.projectId ? (
-                    <Link to={`/project/${act.projectId}`} key={act._id} style={{ textDecoration: 'none' }}>
+                    <Link to={`/project/${act.projectId._id || act.projectId}`} key={act._id} style={{ textDecoration: 'none' }}>
                       <div className="activity-item" style={{ display: 'flex', gap: 12, padding: '8px', borderRadius: '8px', transition: 'background 0.2s', cursor: 'pointer' }} onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-2)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                         <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--primary)', marginTop: 6 }} />
                         <div>
