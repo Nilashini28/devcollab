@@ -17,11 +17,13 @@
     "@tiptap/pm": "^3.23.6",
     "@tiptap/react": "^3.23.6",
     "@tiptap/starter-kit": "^3.23.6",
+    "autoprefixer": "^10.5.0",
     "axios": "^1.16.1",
     "cmdk": "^1.1.1",
     "date-fns": "^4.3.0",
     "diff": "^9.0.0",
     "lucide-react": "^1.16.0",
+    "postcss": "^8.5.15",
     "react": "^19.2.6",
     "react-big-calendar": "^1.19.4",
     "react-dom": "^19.2.6",
@@ -29,7 +31,8 @@
     "react-router-dom": "^7.15.1",
     "recharts": "^3.8.1",
     "shepherd.js": "^15.2.2",
-    "socket.io-client": "^4.8.3"
+    "socket.io-client": "^4.8.3",
+    "tailwindcss": "^4.3.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

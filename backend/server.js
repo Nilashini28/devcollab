@@ -114,6 +114,18 @@ io.on('connection', (socket) => {
     socket.to(`project:${data.projectId}`).emit('task:deleted', data);
   });
 
+  socket.on('task:moved_toast', (data) => {
+    socket.to(`project:${data.projectId}`).emit('task:moved_toast', data);
+  });
+
+  socket.on('card-drag-start', (data) => {
+    socket.to(`project:${data.projectId}`).emit('card-drag-start', data);
+  });
+
+  socket.on('card-drag-end', (data) => {
+    socket.to(`project:${data.projectId}`).emit('card-drag-end', data);
+  });
+
   socket.on('task:viewing', ({ projectId, taskId, userId, userName }) => {
     socket.to(`project:${projectId}`).emit('task:viewing', { taskId, userId, userName });
   });

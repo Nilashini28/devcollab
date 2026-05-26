@@ -59,6 +59,15 @@ export default function Dashboard() {
     } catch (e) { toast.error('Failed to create project'); }
   }
 
+  async function createDemoProject() {
+    try {
+      const pRes = await api.post('/projects', { name: 'Demo Project', description: 'Sample data project', techStack: ['React', 'Node'], colourLabel: '#10b981', workspaceId: activeWs._id });
+      await api.post(`/projects/${pRes.data._id}/seed`);
+      toast.success('Demo project loaded!');
+      navigate(`/project/${pRes.data._id}`);
+    } catch (e) { toast.error('Failed to load demo data'); }
+  }
+
   const colors = ['#6366f1','#10b981','#f59e0b','#ef4444','#3b82f6','#8b5cf6','#ec4899'];
 
   if (loading) return (
@@ -78,6 +87,7 @@ export default function Dashboard() {
           <p style={{ color: 'var(--text-2)', marginTop: 4 }}>Here's what's happening with your projects</p>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
+          {activeWs && <button onClick={createDemoProject} className="btn btn-secondary btn-sm">🚀 Load Demo Data</button>}
           <button onClick={createWorkspace} className="btn btn-secondary btn-sm">+ Workspace</button>
           {activeWs && <button onClick={() => setShowNewProject(true)} className="btn btn-primary btn-sm">+ New Project</button>}
         </div>
@@ -109,7 +119,10 @@ export default function Dashboard() {
               <div style={{ fontSize: 40, marginBottom: 12 }}>📁</div>
               <h3 style={{ marginBottom: 8 }}>No projects yet</h3>
               <p style={{ marginBottom: 20 }}>Create your first project to get started</p>
-              <button onClick={() => setShowNewProject(true)} className="btn btn-primary">Create first project</button>
+              <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+                <button onClick={createDemoProject} className="btn btn-secondary">🚀 Load Demo Data</button>
+                <button onClick={() => setShowNewProject(true)} className="btn btn-primary">Create first project</button>
+              </div>
             </div>
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>

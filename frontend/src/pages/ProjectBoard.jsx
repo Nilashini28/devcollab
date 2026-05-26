@@ -27,7 +27,7 @@ function TaskCard({ task, onClick, isDragging, remoteDragging, taskViewers }) {
 
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}
-      className={`task-card ${overdue ? 'overdue' : ''} ${remoteDragging ? 'remote-dragging' : ''}`}
+      className={`task-card ${overdue ? 'overdue' : ''} ${task.priority} ${isDragging ? 'dragging' : ''} ${remoteDragging ? 'remote-dragging' : ''}`}
       onClick={() => onClick(task)}>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 8 }}>
         <div style={{ fontSize: 13, fontWeight: 500, lineHeight: 1.4, flex: 1 }}>{task.title}</div>
@@ -581,6 +581,7 @@ export default function ProjectBoard() {
   const [taskViewers, setTaskViewers] = useState({});
   const [projectSummary, setProjectSummary] = useState(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
+  const [error, setError] = useState(false);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
@@ -598,6 +599,11 @@ export default function ProjectBoard() {
     s.on('card-drag-end', ({ cardId }) => setRemoteDragging(p => { const next = {...p}; delete next[cardId]; return next; }));
     s.on('task:viewing', ({ taskId, userName }) => setTaskViewers(p => ({ ...p, [taskId]: [...new Set([...(p[taskId]||[]), userName])] })));
     s.on('task:stopped-viewing', ({ taskId, userName }) => setTaskViewers(p => ({ ...p, [taskId]: (p[taskId]||[]).filter(u => u !== userName) })));
+    s.on('task:moved_toast', ({ userName, taskTitle, toColumn }) => {
+      if (userName !== user.name) {
+        toast(`${userName} moved '${taskTitle}' to ${toColumn}`, { icon: '🔄' });
+      }
+    });
     s.on('task:reordered', updatedTasks => {
       setTasks(prev => {
         const map = new Map(updatedTasks.map(t => [t._id, t]));
@@ -606,7 +612,7 @@ export default function ProjectBoard() {
     });
     return () => {
       s.emit('leave:project', { projectId });
-      s.off('presence:update'); s.off('task:moved'); s.off('task:updated'); s.off('task:created'); s.off('task:deleted'); s.off('task:reordered'); s.off('cursor:move'); s.off('card-drag-start'); s.off('card-drag-end'); s.off('task:viewing'); s.off('task:stopped-viewing');
+      s.off('presence:update'); s.off('task:moved'); s.off('task:updated'); s.off('task:created'); s.off('task:deleted'); s.off('task:reordered'); s.off('cursor:move'); s.off('card-drag-start'); s.off('card-drag-end'); s.off('task:viewing'); s.off('task:stopped-viewing'); s.off('task:moved_toast');
     };
   }, [projectId]);
 
@@ -625,6 +631,8 @@ export default function ProjectBoard() {
   }, [handleMouseMove]);
 
   async function loadData() {
+    setError(false);
+    setLoading(true);
     try {
       const [pRes, tRes] = await Promise.all([api.get(`/projects/${projectId}`), api.get(`/tasks?projectId=${projectId}`)]);
       setProject(pRes.data);
@@ -632,7 +640,9 @@ export default function ProjectBoard() {
       const wsRes = await api.get(`/workspaces/${pRes.data.workspaceId}`);
       setWorkspace(wsRes.data);
       setMembers(wsRes.data.members || []);
-    } catch { toast.error('Failed to load board'); }
+    } catch { 
+      setError(true); 
+    }
     finally { setLoading(false); }
   }
 
@@ -692,6 +702,13 @@ export default function ProjectBoard() {
       const movedTask = { ...activeTask, status: targetColId };
       targetColTasks.splice(newIdx, 0, movedTask);
 
+      getSocket().emit('task:moved_toast', { 
+        projectId, 
+        userName: user.name, 
+        taskTitle: activeTask.title, 
+        toColumn: COLUMNS.find(c => c.id === targetColId)?.label || targetColId 
+      });
+
       const updates = [
         ...activeColTasks.map((t, i) => ({ _id: t._id, order: i, status: t.status })),
         ...targetColTasks.map((t, i) => ({ _id: t._id, order: i, status: t.status }))
@@ -714,6 +731,15 @@ export default function ProjectBoard() {
       <div style={{ display: 'flex', gap: 16 }}>
         {[1,2,3,4].map(i => <div key={i} className="skeleton" style={{ width: 280, height: 400, borderRadius: 14 }} />)}
       </div>
+    </div>
+  );
+
+  if (error) return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '50vh' }}>
+      <div style={{ fontSize: 48, marginBottom: 16 }}>⚠️</div>
+      <h3 style={{ marginBottom: 8, color: 'var(--text-1)' }}>Something went wrong</h3>
+      <p style={{ color: 'var(--text-3)', marginBottom: 20 }}>We couldn't load this project board.</p>
+      <button onClick={loadData} className="btn btn-secondary">Retry →</button>
     </div>
   );
 
@@ -778,7 +804,16 @@ export default function ProjectBoard() {
             <div style={{ fontSize: 48, marginBottom: 16 }}>📝</div>
             <h3 style={{ marginBottom: 8, color: 'var(--text-1)' }}>No tasks in this project yet</h3>
             <p style={{ marginBottom: 20 }}>Break down your work into manageable pieces</p>
-            <button onClick={() => setShowCreate(true)} className="btn btn-primary">+ Create First Task</button>
+            <div style={{ display: 'flex', gap: 12 }}>
+              <button onClick={async () => {
+                try {
+                  await api.post(`/projects/${projectId}/seed`);
+                  toast.success('Demo data loaded!');
+                  loadData();
+                } catch (e) { toast.error('Failed to load demo data'); }
+              }} className="btn btn-secondary">🚀 Load Demo Data</button>
+              <button onClick={() => setShowCreate(true)} className="btn btn-primary">+ Create First Task</button>
+            </div>
           </div>
         ) : (
         <div className="kanban-board">
