@@ -25,7 +25,7 @@ export default function App() {
     <ThemeProvider>
       <AuthProvider>
         <BrowserRouter>
-          <Toaster position="top-right" toastOptions={{ duration: 4000 }} />
+          <Toaster position="bottom-right" toastOptions={{ duration: 4000 }} />
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />

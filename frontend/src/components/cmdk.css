@@ -1,13 +1,14 @@
 [cmdk-dialog] {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.6);
+  background: rgba(0,0,0,0.4);
   display: flex;
   justify-content: center;
   align-items: flex-start;
   padding-top: 15vh;
   z-index: 1000;
   backdrop-filter: blur(12px);
+  animation: fadeIn 0.2s ease-out;
 }
 [cmdk-root] {
   width: 100%;
@@ -17,6 +18,7 @@
   box-shadow: 0 20px 40px rgba(0,0,0,0.2);
   overflow: hidden;
   border: 1px solid var(--border);
+  animation: slideDown 0.2s ease-out;
 }
 [cmdk-input] {
   width: 100%;
@@ -42,7 +44,18 @@
   gap: 12px;
   color: var(--text-1);
   font-size: 14px;
+  transition: all 0.15s ease-out;
+  animation: popIn 0.3s ease-out forwards;
+  opacity: 0;
 }
+[cmdk-item]:nth-child(1) { animation-delay: 0.02s; }
+[cmdk-item]:nth-child(2) { animation-delay: 0.04s; }
+[cmdk-item]:nth-child(3) { animation-delay: 0.06s; }
+[cmdk-item]:nth-child(4) { animation-delay: 0.08s; }
+[cmdk-item]:nth-child(5) { animation-delay: 0.10s; }
+[cmdk-item]:nth-child(6) { animation-delay: 0.12s; }
+[cmdk-item]:nth-child(7) { animation-delay: 0.14s; }
+[cmdk-item]:nth-child(8) { animation-delay: 0.16s; }
 [cmdk-item][data-selected="true"] {
   background: var(--primary-light);
   color: var(--primary);

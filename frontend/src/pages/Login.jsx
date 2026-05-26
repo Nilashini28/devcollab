@@ -23,6 +23,20 @@ export default function Login() {
     }
   }
 
+  async function demoLogin(demoEmail) {
+    setEmail(demoEmail);
+    setPassword('password123');
+    setLoading(true);
+    try {
+      await login(demoEmail, 'password123');
+      navigate('/');
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Login failed');
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--surface-2)', padding: 20 }}>
       <div style={{ width: '100%', maxWidth: 400 }}>
@@ -32,8 +46,13 @@ export default function Login() {
           <p style={{ color: 'var(--text-2)', marginTop: 4 }}>Sign in to DevCollab</p>
         </div>
         <div className="card">
-          <div style={{ background: 'var(--primary-light)', border: '1px solid var(--primary)', borderRadius: 8, padding: '10px 14px', marginBottom: 20, fontSize: 13 }}>
-            <strong>Demo account:</strong> judge@demo.com / password123
+          <div style={{ background: 'var(--surface-3)', borderRadius: 8, padding: 14, marginBottom: 20, fontSize: 13, border: '1px solid var(--border)' }}>
+            <div style={{ fontWeight: 600, color: 'var(--text-1)', marginBottom: 8 }}>Preloaded Demo Accounts</div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <button type="button" onClick={() => demoLogin('alice@demo.com')} className="btn btn-secondary btn-sm" disabled={loading}>Alice (Dev)</button>
+              <button type="button" onClick={() => demoLogin('bob@demo.com')} className="btn btn-secondary btn-sm" disabled={loading}>Bob (PM)</button>
+              <button type="button" onClick={() => demoLogin('judge@demo.com')} className="btn btn-secondary btn-sm" disabled={loading}>Judge (Hackathon)</button>
+            </div>
           </div>
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div>

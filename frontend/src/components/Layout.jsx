@@ -38,6 +38,9 @@ export default function Layout() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
+  const [showWsSettings, setShowWsSettings] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteLink, setInviteLink] = useState(null);
 
   useEffect(() => {
     loadWorkspaces();
@@ -124,6 +127,17 @@ export default function Layout() {
     setUnread(0);
   }
 
+  async function inviteMember(e) {
+    e.preventDefault();
+    if (!inviteEmail) return;
+    try {
+      const r = await api.post(`/workspaces/${activeWorkspace._id}/invite`, { email: inviteEmail, role: 'member' });
+      setInviteLink(window.location.origin + r.data.link);
+      toast.success('Invite generated!');
+      setInviteEmail('');
+    } catch { toast.error('Failed to generate invite'); }
+  }
+
   const navItems = activeProjectId ? [
     { label: 'Board', icon: '⬜', path: `/project/${activeProjectId}` },
     { label: 'Snippets', icon: '💻', path: `/project/${activeProjectId}/snippets` },
@@ -141,8 +155,9 @@ export default function Layout() {
             <span style={{ fontWeight: 700, fontSize: 15, color: 'var(--text-1)' }}>DevCollab</span>
           </div>
           {activeWorkspace && (
-            <div style={{ fontSize: 11, color: 'var(--text-3)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-              {activeWorkspace.name}
+            <div className="ws-setting" onClick={() => setShowWsSettings(true)} style={{ fontSize: 11, color: 'var(--text-3)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
+              <span>{activeWorkspace.name}</span>
+              <span className="gear-icon" style={{ fontSize: 12 }}>⚙️</span>
             </div>
           )}
         </div>
@@ -274,6 +289,34 @@ export default function Layout() {
         </Command.List>
       </Command.Dialog>
       </div>
+
+      {showWsSettings && activeWorkspace && (
+        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowWsSettings(false)}>
+          <div className="modal" style={{ padding: 24, maxWidth: 460 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <h2 style={{ fontSize: 18, fontWeight: 700 }}>Workspace Settings</h2>
+              <button onClick={() => setShowWsSettings(false)} style={{ color: 'var(--text-2)', background: 'none', border: 'none', cursor: 'pointer', fontSize: 16 }}>✕</button>
+            </div>
+            
+            <div style={{ marginBottom: 24 }}>
+              <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>Invite Members</h3>
+              <form onSubmit={inviteMember} style={{ display: 'flex', gap: 8 }}>
+                <input value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} type="email" placeholder="colleague@example.com" style={{ flex: 1 }} required />
+                <button type="submit" className="btn btn-primary btn-sm">Generate Link</button>
+              </form>
+              {inviteLink && (
+                <div style={{ marginTop: 12, padding: 12, background: 'var(--surface-2)', borderRadius: 8, border: '1px solid var(--border)' }}>
+                  <div style={{ fontSize: 12, color: 'var(--text-2)', marginBottom: 6 }}>Invite link generated:</div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <input value={inviteLink} readOnly style={{ flex: 1, fontSize: 12, background: 'var(--surface)', padding: '4px 8px' }} />
+                    <button onClick={() => { navigator.clipboard.writeText(inviteLink); toast.success('Copied!'); }} className="btn btn-secondary btn-sm" style={{ padding: '4px 10px', fontSize: 12 }}>Copy</button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

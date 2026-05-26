@@ -26,9 +26,17 @@ function TaskCard({ task, onClick, isDragging, remoteDragging, taskViewers }) {
   const completedSubs = task.subTasks?.filter(s => s.completed).length || 0;
 
   return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners}
+    <div ref={setNodeRef} style={{ ...style, boxShadow: (taskViewers && taskViewers.length > 0) ? '0 0 0 2px var(--primary-light), 0 4px 12px rgba(99,102,241,0.2)' : undefined }} {...attributes} {...listeners}
       className={`task-card ${overdue ? 'overdue' : ''} ${task.priority} ${isDragging ? 'dragging' : ''} ${remoteDragging ? 'remote-dragging' : ''}`}
-      onClick={() => onClick(task)}>
+      onClick={() => onClick(task)}
+      onMouseEnter={() => {
+        const u = JSON.parse(localStorage.getItem('user') || '{}');
+        if (u.name) getSocket().emit('task:viewing', { projectId: task.projectId, taskId: task._id, userId: u._id, userName: u.name });
+      }}
+      onMouseLeave={() => {
+        const u = JSON.parse(localStorage.getItem('user') || '{}');
+        if (u.name) getSocket().emit('task:stopped-viewing', { projectId: task.projectId, taskId: task._id, userName: u.name });
+      }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 8 }}>
         <div style={{ fontSize: 13, fontWeight: 500, lineHeight: 1.4, flex: 1 }}>{task.title}</div>
         <span className={`badge badge-${task.priority}`} title={`Priority ${task.priority}`} style={{ flexShrink: 0 }}>{task.priority}</span>
@@ -61,8 +69,8 @@ function TaskCard({ task, onClick, isDragging, remoteDragging, taskViewers }) {
         </div>
       )}
       {taskViewers && taskViewers.length > 0 && (
-        <div style={{ position: 'absolute', top: -10, right: -10, background: 'var(--primary)', color: 'white', padding: '2px 8px', borderRadius: 12, fontSize: 10, fontWeight: 600, boxShadow: 'var(--shadow-sm)', zIndex: 10, animation: 'fadeIn 0.2s ease-out' }}>
-          👁 {taskViewers[0]} {taskViewers.length > 1 ? `+${taskViewers.length-1}` : ''} viewing
+        <div style={{ position: 'absolute', top: -10, right: -10, background: 'var(--primary)', color: 'white', padding: '4px 10px', borderRadius: 12, fontSize: 10, fontWeight: 600, boxShadow: 'var(--shadow-sm)', zIndex: 10, animation: 'fadeIn 0.2s ease-out' }}>
+          👁 {taskViewers[0]} is looking at this {taskViewers.length > 1 ? `(+${taskViewers.length-1})` : ''}
         </div>
       )}
     </div>
@@ -112,8 +120,12 @@ function TaskModal({ task, project, members, onClose, onUpdate, onDelete }) {
   const [typing, setTyping] = useState(null);
 
   const loadComments = useCallback(async () => {
-    const r = await api.get(`/tasks/${task._id}/comments`);
-    setComments(r.data);
+    try {
+      const r = await api.get(`/tasks/${task._id}/comments`);
+      setComments(r.data);
+    } catch (err) {
+      console.error('Failed to load comments');
+    }
   }, [task._id]);
 
   const suggestLinks = useCallback(async () => {
@@ -231,8 +243,11 @@ function TaskModal({ task, project, members, onClose, onUpdate, onDelete }) {
               style={{ fontSize: 18, fontWeight: 700, border: 'none', padding: 0, background: 'transparent', width: '100%' }} placeholder="Task title" />
             {viewers.length > 0 && <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 4 }}>👁 {viewers.slice(0,2).join(', ')} viewing</div>}
           </div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button onClick={() => { if (confirm('Delete this task?')) { onDelete(task._id); onClose(); } }} className="btn btn-sm" style={{ color: 'var(--danger)' }}>🗑</button>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <button onClick={generateCommit} disabled={generatingCommit} className="btn btn-secondary btn-sm" style={{ padding: '4px 10px', fontSize: 11 }}>
+              {generatingCommit ? '⏳ Generating...' : '🤖 Copy AI Commit Message'}
+            </button>
+            <button onClick={() => { if (window.confirm('Delete this task?')) { onDelete(task._id); onClose(); } }} className="btn btn-sm" style={{ color: 'var(--danger)' }}>🗑</button>
             <button onClick={onClose} style={{ color: 'var(--text-2)', fontSize: 18, padding: 4 }}>✕</button>
           </div>
         </div>
@@ -245,6 +260,22 @@ function TaskModal({ task, project, members, onClose, onUpdate, onDelete }) {
               <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Description</label>
               <textarea value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} onBlur={e => saveField('description', e.target.value)}
                 style={{ marginTop: 6, resize: 'vertical', minHeight: 80 }} placeholder="Add a description..." />
+              
+              {/* AI Linked tasks */}
+              {aiLinks.length > 0 && (
+                <div style={{ marginTop: 12, display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+                  <span style={{ fontSize: 12, color: 'var(--text-3)' }}>🔗 See also:</span>
+                  {aiLinks.map(link => (
+                    <button key={link.taskId} onClick={async () => {
+                      await api.put(`/tasks/${task._id}`, { linkedTaskIds: [...(form.linkedTaskIds || []), link.taskId] });
+                      setAiLinks(p => p.filter(l => l.taskId !== link.taskId));
+                      toast.success('Task linked');
+                    }} className="btn btn-sm" style={{ padding: '2px 8px', fontSize: 11, background: 'var(--surface-3)', border: '1px solid var(--border)', borderRadius: 12, color: 'var(--primary)' }} title={link.reason}>
+                      [{link.title}]
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Subtasks */}
@@ -301,26 +332,6 @@ function TaskModal({ task, project, members, onClose, onUpdate, onDelete }) {
               </div>
             )}
 
-            {/* AI Linked tasks */}
-            {aiLinks.length > 0 && (
-              <div style={{ marginBottom: 20 }}>
-                <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>🔗 AI Suggested Links</label>
-                {aiLinks.map(link => (
-                  <div key={link.taskId} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 8px', marginTop: 4, background: 'var(--surface-3)', borderRadius: 6 }}>
-                    <div>
-                      <div style={{ fontSize: 13, fontWeight: 500 }}>{link.title}</div>
-                      <div style={{ fontSize: 11, color: 'var(--text-3)' }}>{link.reason}</div>
-                    </div>
-                    <button onClick={async () => {
-                      await api.put(`/tasks/${task._id}`, { linkedTaskIds: [...(form.linkedTaskIds || []), link.taskId] });
-                      setAiLinks(p => p.filter(l => l.taskId !== link.taskId));
-                      toast.success('Task linked');
-                    }} className="btn btn-sm btn-secondary">Link</button>
-                  </div>
-                ))}
-              </div>
-            )}
-
             {/* History */}
             {task.history?.length > 0 && (
               <div style={{ marginBottom: 20 }}>
@@ -350,12 +361,12 @@ function TaskModal({ task, project, members, onClose, onUpdate, onDelete }) {
                   </div>
                 ))}
               </div>
-              {typing && <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 6 }}>{typing} is typing...</div>}
               <form onSubmit={addComment} style={{ display: 'flex', gap: 8, marginTop: 12 }}>
                 <input value={commentText} onChange={e => { setCommentText(e.target.value); getSocket().emit('comment:typing', { projectId: task.projectId, taskId: task._id, userId: user._id, userName: user.name }); }}
                   placeholder="Add a comment..." style={{ flex: 1 }} />
                 <button type="submit" className="btn btn-primary btn-sm" disabled={submitting}>Post</button>
               </form>
+              {typing && <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 8, height: 16 }}>{typing} is typing<span className="bouncing-ellipsis"></span></div>}
             </div>
           </div>
 
@@ -402,12 +413,29 @@ function TaskModal({ task, project, members, onClose, onUpdate, onDelete }) {
   );
 }
 
-function CreateTaskModal({ projectId, members, onClose, onCreate }) {
-  const [form, setForm] = useState({ title: '', description: '', priority: 'P2', status: 'todo', labels: '', assigneeId: '' });
+function CreateTaskModal({ projectId, project, members, onClose, onCreate }) {
+  const [form, setForm] = useState({ title: '', description: '', priority: 'P2', status: 'todo', labels: '', assigneeId: '', subTasks: [] });
   const [nameSuggestions, setNameSuggestions] = useState([]);
   const [standup, setStandup] = useState(null);
   const [standupLoading, setStandupLoading] = useState(false);
   const [showStandup, setShowStandup] = useState(false);
+  const [breakdownLoading, setBreakdownLoading] = useState(false);
+
+  async function generateBreakdown() {
+    if (!form.title) return toast.error('Please enter a title first');
+    setBreakdownLoading(true);
+    try {
+      const r = await api.post('/ai/task-breakdown', { 
+        description: form.title + '\n' + form.description, 
+        projectId, 
+        techStack: project?.techStack || [], 
+        members: members.map(m => ({ name: m.userId?.name || m.name, skills: m.userId?.skills || [] })) 
+      });
+      if (r.data?.tasks) {
+        setForm(p => ({ ...p, subTasks: r.data.tasks.map(t => ({ title: t.title, completed: false })) }));
+      }
+    } catch { toast.error('AI unavailable'); } finally { setBreakdownLoading(false); }
+  }
 
   const fetchNameSuggestions = useCallback(async () => {
     try {
@@ -513,8 +541,40 @@ function CreateTaskModal({ projectId, members, onClose, onCreate }) {
             )}
           </div>
           <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-3)', display: 'block', marginBottom: 4 }}>Description</label>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-3)' }}>Description</label>
+              <button type="button" onClick={generateBreakdown} disabled={breakdownLoading} className="btn btn-secondary btn-sm" style={{ padding: '2px 8px', fontSize: 11 }}>
+                {breakdownLoading ? '🤖 Generating...' : '🤖 Generate Breakdown'}
+              </button>
+            </div>
             <textarea value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} rows={3} placeholder="Details, acceptance criteria..." style={{ resize: 'vertical' }} />
+            
+            {form.subTasks?.length > 0 && (
+              <div style={{ marginTop: 12 }}>
+                <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-3)', display: 'block', marginBottom: 4 }}>AI Generated Subtasks</label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, background: 'var(--surface-2)', padding: 10, borderRadius: 8 }}>
+                  {form.subTasks.map((s, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
+                      <input type="checkbox" checked={s.completed} onChange={e => {
+                        const newSub = [...form.subTasks];
+                        newSub[i].completed = e.target.checked;
+                        setForm({ ...form, subTasks: newSub });
+                      }} />
+                      <input value={s.title} onChange={e => {
+                        const newSub = [...form.subTasks];
+                        newSub[i].title = e.target.value;
+                        setForm({ ...form, subTasks: newSub });
+                      }} style={{ flex: 1, padding: '2px 6px', fontSize: 13, border: 'none', background: 'transparent' }} />
+                      <button type="button" onClick={() => {
+                        const newSub = form.subTasks.filter((_, idx) => idx !== i);
+                        setForm({ ...form, subTasks: newSub });
+                      }} style={{ color: 'var(--text-3)', background: 'none', border: 'none', cursor: 'pointer' }}>✕</button>
+                    </div>
+                  ))}
+                  <button type="button" onClick={() => setForm(p => ({...p, subTasks: [...p.subTasks, {title: '', completed: false}]}))} className="btn btn-secondary btn-sm" style={{ alignSelf: 'flex-start', marginTop: 4 }}>+ Add Subtask</button>
+                </div>
+              </div>
+            )}
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <div>
@@ -599,9 +659,16 @@ export default function ProjectBoard() {
     s.on('card-drag-end', ({ cardId }) => setRemoteDragging(p => { const next = {...p}; delete next[cardId]; return next; }));
     s.on('task:viewing', ({ taskId, userName }) => setTaskViewers(p => ({ ...p, [taskId]: [...new Set([...(p[taskId]||[]), userName])] })));
     s.on('task:stopped-viewing', ({ taskId, userName }) => setTaskViewers(p => ({ ...p, [taskId]: (p[taskId]||[]).filter(u => u !== userName) })));
-    s.on('task:moved_toast', ({ userName, taskTitle, toColumn }) => {
+    s.on('task:moved_toast', ({ userName, taskTitle, toColumn, avatar }) => {
       if (userName !== user.name) {
-        toast(`${userName} moved '${taskTitle}' to ${toColumn}`, { icon: '🔄' });
+        toast((t) => (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <Avatar user={{ name: userName, avatar }} size="avatar-sm" />
+            <div style={{ fontSize: 13, lineHeight: 1.4 }}>
+              <span style={{ fontWeight: 600 }}>{userName}</span> moved '{taskTitle}' → <span style={{ color: 'var(--primary)', fontWeight: 600 }}>{toColumn}</span>
+            </div>
+          </div>
+        ));
       }
     });
     s.on('task:reordered', updatedTasks => {
@@ -705,6 +772,7 @@ export default function ProjectBoard() {
       getSocket().emit('task:moved_toast', { 
         projectId, 
         userName: user.name, 
+        avatar: user.avatar,
         taskTitle: activeTask.title, 
         toColumn: COLUMNS.find(c => c.id === targetColId)?.label || targetColId 
       });
@@ -754,14 +822,17 @@ export default function ProjectBoard() {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           {/* Presence */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            {presence.slice(0, 8).map((p, i) => (
-              <div key={i} style={{ position: 'relative' }}>
-                <div className="avatar avatar-sm" title={p.userName} style={{ background: '#6366f1', border: '2px solid var(--surface)' }}>{p.avatar ? <img src={p.avatar} style={{width:'100%', height:'100%', borderRadius:'50%'}}/> : p.userName?.charAt(0)}</div>
-   <div style={{ position: 'absolute', bottom: 0, right: 0, width: 8, height: 8, background: '#10b981', border: '1px solid var(--surface)', borderRadius: '50%', animation: 'pulse 2s infinite' }} />
-              </div>
-            ))}
-            {presence.length > 8 && <span style={{ fontSize: 11, color: 'var(--text-3)', fontWeight: 600 }}>+{presence.length - 8} more</span>}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-2)' }}>👥 {presence.length} people viewing:</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              {presence.slice(0, 8).map((p, i) => (
+                <div key={i} style={{ position: 'relative', animation: 'popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards' }}>
+                  <div className="avatar avatar-sm" title={p.userName} style={{ background: '#6366f1', border: '2px solid var(--surface)' }}>{p.avatar ? <img src={p.avatar} style={{width:'100%', height:'100%', borderRadius:'50%'}}/> : p.userName?.charAt(0)}</div>
+                  <div style={{ position: 'absolute', bottom: 0, right: 0, width: 8, height: 8, background: '#10b981', border: '1px solid var(--surface)', borderRadius: '50%', animation: 'pulse 2s infinite' }} />
+                </div>
+              ))}
+              {presence.length > 8 && <span style={{ fontSize: 11, color: 'var(--text-3)', fontWeight: 600 }}>+{presence.length - 8} more</span>}
+            </div>
           </div>
           {/* Filters */}
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search tasks..." style={{ width: 140, padding: '5px 10px', fontSize: 12 }} />
@@ -798,24 +869,26 @@ export default function ProjectBoard() {
           </div>
         </div>
       )}
-      {view === 'kanban' ? (
-        tasks.length === 0 && !loading ? (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '50vh', color: 'var(--text-3)' }}>
-            <div style={{ fontSize: 48, marginBottom: 16 }}>📝</div>
-            <h3 style={{ marginBottom: 8, color: 'var(--text-1)' }}>No tasks in this project yet</h3>
-            <p style={{ marginBottom: 20 }}>Break down your work into manageable pieces</p>
-            <div style={{ display: 'flex', gap: 12 }}>
-              <button onClick={async () => {
-                try {
-                  await api.post(`/projects/${projectId}/seed`);
-                  toast.success('Demo data loaded!');
-                  loadData();
-                } catch (e) { toast.error('Failed to load demo data'); }
-              }} className="btn btn-secondary">🚀 Load Demo Data</button>
-              <button onClick={() => setShowCreate(true)} className="btn btn-primary">+ Create First Task</button>
-            </div>
+
+      {tasks.length === 0 && !loading && (
+        <div style={{ margin: '24px 24px 0', padding: 40, textAlign: 'center', background: 'var(--surface)', border: '2px dashed var(--border)', borderRadius: 'var(--radius-lg)' }}>
+          <div style={{ fontSize: 40, marginBottom: 12 }}>📋</div>
+          <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>This board is empty</h3>
+          <p style={{ color: 'var(--text-2)', marginBottom: 20 }}>Get started by creating a task or load demo data.</p>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 12 }}>
+            <button onClick={async () => {
+              try {
+                await api.post(`/projects/${projectId}/seed`);
+                loadData();
+                toast.success('Demo data loaded successfully!');
+              } catch (e) { toast.error('Failed to load demo data'); }
+            }} className="btn btn-secondary">🚀 Load Demo Data</button>
+            <button onClick={() => setShowCreate(true)} className="btn btn-primary">+ Create Task</button>
           </div>
-        ) : (
+        </div>
+      )}
+      {view === 'kanban' ? (
+        tasks.length > 0 && !loading && (
         <div className="kanban-board">
           <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
             {COLUMNS.map(col => (
@@ -866,7 +939,7 @@ export default function ProjectBoard() {
       )}
 
       {showCreate && (
-        <CreateTaskModal projectId={projectId} members={members}
+        <CreateTaskModal projectId={projectId} project={project} members={members}
           onClose={() => setShowCreate(false)}
           onCreate={task => setTasks(prev => [...prev, task])} />
       )}
