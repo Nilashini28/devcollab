@@ -21,18 +21,18 @@ export default function Register() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--surface-2)', padding: 20 }}>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-base)', padding: 20 }}>
       <div style={{ width: '100%', maxWidth: 400 }}>
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
           <div style={{ width: 48, height: 48, borderRadius: 14, background: 'var(--primary)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, color: 'white', fontWeight: 700, marginBottom: 12 }}>D</div>
           <h1 style={{ fontSize: 24, fontWeight: 700 }}>Create account</h1>
-          <p style={{ color: 'var(--text-2)', marginTop: 4 }}>Start collaborating with your team</p>
+          <p style={{ color: 'var(--text-secondary)', marginTop: 4 }}>Start collaborating with your team</p>
         </div>
         <div className="card">
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             {['name','email','password'].map(field => (
               <div key={field}>
-                <label style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-2)', display: 'block', marginBottom: 6, textTransform: 'capitalize' }}>{field}</label>
+                <label style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)', display: 'block', marginBottom: 6, textTransform: 'capitalize' }}>{field}</label>
                 <input type={field === 'password' ? 'password' : field === 'email' ? 'email' : 'text'} value={form[field]} onChange={e => setForm(p => ({ ...p, [field]: e.target.value }))} required placeholder={field === 'name' ? 'Your full name' : field === 'email' ? 'you@company.com' : '••••••••'} />
               </div>
             ))}
@@ -40,7 +40,7 @@ export default function Register() {
               {loading ? 'Creating account...' : 'Create account'}
             </button>
           </form>
-          <p style={{ textAlign: 'center', marginTop: 16, color: 'var(--text-2)', fontSize: 13 }}>
+          <p style={{ textAlign: 'center', marginTop: 16, color: 'var(--text-secondary)', fontSize: 13 }}>
             Already have an account? <Link to="/login">Sign in</Link>
           </p>
         </div>

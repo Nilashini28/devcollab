@@ -43,23 +43,23 @@ export default function Activity() {
           {[1,2,3,4,5].map(i => <div key={i} className="skeleton" style={{ height: 52 }} />)}
         </div>
       ) : events.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: 60, color: 'var(--text-3)' }}>
+        <div style={{ textAlign: 'center', padding: 60, color: 'var(--text-tertiary)' }}>
           <div style={{ fontSize: 40, marginBottom: 12 }}>📋</div>
           <div>No activity yet</div>
         </div>
       ) : (
         <div>
           {events.map(e => (
-            <div key={e._id} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '12px 0', borderBottom: '1px solid var(--border)' }}>
+            <div key={e._id} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '12px 0', borderBottom: '1px solid var(--sidebar-border)' }}>
               <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--primary-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, flexShrink: 0 }}>
                 {TYPE_ICONS[e.type] || '•'}
               </div>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 13 }}>
                   <strong>{e.actorId?.name || 'System'}</strong> {describeEvent(e)}
-                  {e.projectId?.name && <span style={{ color: 'var(--text-3)', marginLeft: 6 }}>in {e.projectId.name}</span>}
+                  {e.projectId?.name && <span style={{ color: 'var(--text-tertiary)', marginLeft: 6 }}>in {e.projectId.name}</span>}
                 </div>
-                <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 2 }}>{timeAgo(e.createdAt)}</div>
+                <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>{timeAgo(e.createdAt)}</div>
               </div>
             </div>
           ))}

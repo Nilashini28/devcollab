@@ -14,29 +14,29 @@ function CodeHighlight({ code, language }) {
 }
 
 function ReviewPanel({ review, loading, onApplyFix }) {
-  if (loading) return <div style={{ padding: 20, color: 'var(--text-2)' }}>🤖 Reviewing code...</div>;
+  if (loading) return <div style={{ padding: 20, color: 'var(--text-secondary)' }}>🤖 Reviewing code...</div>;
   if (!review) return null;
   const scoreColor = review.score >= 8 ? 'var(--success)' : review.score >= 5 ? 'var(--warning)' : 'var(--danger)';
   return (
-    <div style={{ marginTop: 16, border: '1px solid var(--border)', borderRadius: 'var(--radius)', overflow: 'hidden' }}>
-      <div style={{ padding: '12px 16px', background: 'var(--surface-3)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+    <div style={{ marginTop: 16, border: '1px solid var(--sidebar-border)', borderRadius: 'var(--radius)', overflow: 'hidden' }}>
+      <div style={{ padding: '12px 16px', background: 'var(--bg-base)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <span style={{ fontWeight: 700, fontSize: 13 }}>🤖 AI Code Review</span>
         <div style={{ width: 44, height: 44, borderRadius: '50%', border: `3px solid ${scoreColor}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, fontWeight: 700, color: scoreColor }}>{review.score}</div>
       </div>
       <div style={{ padding: 14 }}>
-        <p style={{ fontSize: 13, color: 'var(--text-2)', marginBottom: 12 }}>{review.summary}</p>
+        <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 12 }}>{review.summary}</p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {['bugs', 'performance', 'security', 'readability'].map(cat => {
             if (!review[cat] || review[cat].length === 0) return null;
             return (
               <details key={cat} open>
-                <summary style={{ fontSize: 13, fontWeight: 700, cursor: 'pointer', textTransform: 'capitalize', color: 'var(--text-1)' }}>
+                <summary style={{ fontSize: 13, fontWeight: 700, cursor: 'pointer', textTransform: 'capitalize', color: 'var(--text-primary)' }}>
                   {cat === 'bugs' ? '🐛' : cat === 'performance' ? '⚡' : cat === 'security' ? '🔒' : '📖'} {cat} ({review[cat].length})
                 </summary>
                 <div style={{ marginTop: 8, paddingLeft: 20 }}>
                   {review[cat].map((item, i) => (
-                    <div key={i} style={{ padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
-                      <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-1)' }}>
+                    <div key={i} style={{ padding: '8px 0', borderBottom: '1px solid var(--sidebar-border)' }}>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>
                         {item.line ? `Line ${item.line}: ` : ''}{item.issue}
                       </div>
                       <div style={{ fontSize: 12, color: 'var(--success)' }}>💡 Fix: {item.fix}</div>
@@ -148,8 +148,8 @@ export default function Snippets() {
   return (
     <div style={{ display: 'flex', height: 'calc(100vh - 56px)', overflow: 'hidden' }}>
       {/* Sidebar list */}
-      <div style={{ width: 280, borderRight: '1px solid var(--border)', display: 'flex', flexDirection: 'column', background: 'var(--surface)' }}>
-        <div style={{ padding: 12, borderBottom: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div style={{ width: 280, borderRight: '1px solid var(--sidebar-border)', display: 'flex', flexDirection: 'column', background: 'var(--bg-surface)' }}>
+        <div style={{ padding: 12, borderBottom: '1px solid var(--sidebar-border)', display: 'flex', flexDirection: 'column', gap: 8 }}>
           <div style={{ display: 'flex', gap: 8 }}>
             <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search snippets..." style={{ flex: 1, fontSize: 12, padding: '5px 8px' }} />
             <button onClick={() => setShowCreate(true)} className="btn btn-primary btn-sm">+</button>
@@ -165,19 +165,19 @@ export default function Snippets() {
         <div style={{ flex: 1, overflow: 'auto' }}>
           {loading ? [1,2,3].map(i => <div key={i} className="skeleton" style={{ height: 68, margin: 8, borderRadius: 8 }} />) :
             filtered.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: 32, color: 'var(--text-3)' }}>
+              <div style={{ textAlign: 'center', padding: 32, color: 'var(--text-tertiary)' }}>
                 <div style={{ fontSize: 32, marginBottom: 8 }}>💻</div>
                 <div>No snippets yet</div>
                 <button onClick={() => setShowCreate(true)} className="btn btn-primary btn-sm" style={{ marginTop: 12 }}>Add first snippet</button>
               </div>
             ) :
             filtered.map(s => (
-              <div key={s._id} onClick={() => setSelected(s)} style={{ padding: '12px 14px', borderBottom: '1px solid var(--border)', cursor: 'pointer', background: selected?._id === s._id ? 'var(--primary-light)' : 'transparent' }}>
+              <div key={s._id} onClick={() => setSelected(s)} style={{ padding: '12px 14px', borderBottom: '1px solid var(--sidebar-border)', cursor: 'pointer', background: selected?._id === s._id ? 'var(--primary-light)' : 'transparent' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-                  <span style={{ fontWeight: 600, fontSize: 13, color: selected?._id === s._id ? 'var(--primary)' : 'var(--text-1)' }}>{s.title}</span>
-                  <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 4, background: 'var(--surface-3)', color: 'var(--text-2)', fontFamily: 'monospace' }}>{s.language}</span>
+                  <span style={{ fontWeight: 600, fontSize: 13, color: selected?._id === s._id ? 'var(--primary)' : 'var(--text-primary)' }}>{s.title}</span>
+                  <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 4, background: 'var(--bg-base)', color: 'var(--text-secondary)', fontFamily: 'monospace' }}>{s.language}</span>
                 </div>
-                {s.tags?.length > 0 && <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>{s.tags.slice(0,3).map(t => <span key={t} style={{ fontSize: 10, padding: '1px 5px', background: 'var(--surface-3)', borderRadius: 3, color: 'var(--text-2)' }}>{t}</span>)}</div>}
+                {s.tags?.length > 0 && <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>{s.tags.slice(0,3).map(t => <span key={t} style={{ fontSize: 10, padding: '1px 5px', background: 'var(--bg-base)', borderRadius: 3, color: 'var(--text-secondary)' }}>{t}</span>)}</div>}
                 {s.aiReview && <div style={{ fontSize: 10, color: 'var(--success)', marginTop: 4 }}>✓ Reviewed: {s.aiReview.score}/10</div>}
               </div>
             ))
@@ -188,7 +188,7 @@ export default function Snippets() {
       {/* Detail */}
       <div style={{ flex: 1, overflow: 'auto', padding: 24 }}>
         {!selected ? (
-          <div style={{ textAlign: 'center', padding: 80, color: 'var(--text-3)' }}>
+          <div style={{ textAlign: 'center', padding: 80, color: 'var(--text-tertiary)' }}>
             <div style={{ fontSize: 48, marginBottom: 12 }}>💻</div>
             <h3>Select a snippet or create one</h3>
           </div>
@@ -198,9 +198,9 @@ export default function Snippets() {
               <div>
                 <h2 style={{ fontSize: 20, fontWeight: 700 }}>{selected.title}</h2>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
-                  <span style={{ fontSize: 12, padding: '2px 8px', background: 'var(--surface-3)', borderRadius: 4, fontFamily: 'monospace', color: 'var(--text-2)' }}>{selected.language}</span>
+                  <span style={{ fontSize: 12, padding: '2px 8px', background: 'var(--bg-base)', borderRadius: 4, fontFamily: 'monospace', color: 'var(--text-secondary)' }}>{selected.language}</span>
                   {selected.linkedTaskId && <span style={{ fontSize: 12, color: 'var(--primary)' }}>🔗 {selected.linkedTaskId.title || 'Linked task'}</span>}
-                  {selected.authorId && <span style={{ fontSize: 12, color: 'var(--text-3)' }}>by {selected.authorId.name}</span>}
+                  {selected.authorId && <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>by {selected.authorId.name}</span>}
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
@@ -211,7 +211,7 @@ export default function Snippets() {
                 <button onClick={() => { if (confirm('Delete?')) deleteSnippet(selected._id); }} className="btn btn-sm" style={{ color: 'var(--danger)' }}>🗑</button>
               </div>
             </div>
-            {selected.description && <p style={{ color: 'var(--text-2)', fontSize: 13, marginBottom: 14 }}>{selected.description}</p>}
+            {selected.description && <p style={{ color: 'var(--text-secondary)', fontSize: 13, marginBottom: 14 }}>{selected.description}</p>}
             {selected.tags?.length > 0 && <div style={{ display: 'flex', gap: 4, marginBottom: 14 }}>{selected.tags.map(t => <span key={t} className="label-chip">{t}</span>)}</div>}
             <CodeHighlight code={selected.code} language={selected.language} />
             <ReviewPanel review={selected.aiReview} loading={reviewLoading} onApplyFix={applyFixToSnippet} />
@@ -225,24 +225,24 @@ export default function Snippets() {
           <div className="modal" style={{ padding: 24 }}>
             <h2 style={{ marginBottom: 16 }}>New Snippet</h2>
             <form onSubmit={createSnippet} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div><label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-3)', display: 'block', marginBottom: 4 }}>Title *</label>
+              <div><label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>Title *</label>
                 <input value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))} required placeholder="e.g. JWT Auth Helper" /></div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                <div><label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-3)', display: 'block', marginBottom: 4 }}>Language</label>
+                <div><label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>Language</label>
                   <select value={form.language} onChange={e => setForm(p => ({ ...p, language: e.target.value }))}>
                     {LANGUAGES.map(l => <option key={l} value={l}>{l}</option>)}
                   </select></div>
-                <div><label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-3)', display: 'block', marginBottom: 4 }}>Linked task</label>
+                <div><label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>Linked task</label>
                   <select value={form.linkedTaskId} onChange={e => setForm(p => ({ ...p, linkedTaskId: e.target.value }))}>
                     <option value="">None</option>
                     {tasks.map(t => <option key={t._id} value={t._id}>{t.title}</option>)}
                   </select></div>
               </div>
-              <div><label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-3)', display: 'block', marginBottom: 4 }}>Code *</label>
+              <div><label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>Code *</label>
                 <textarea value={form.code} onChange={e => setForm(p => ({ ...p, code: e.target.value }))} required rows={8} placeholder="Paste your code here..." style={{ fontFamily: 'monospace', fontSize: 12, resize: 'vertical' }} /></div>
-              <div><label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-3)', display: 'block', marginBottom: 4 }}>Tags</label>
+              <div><label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>Tags</label>
                 <input value={form.tags} onChange={e => setForm(p => ({ ...p, tags: e.target.value }))} placeholder="auth, utils, api" /></div>
-              <div><label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-3)', display: 'block', marginBottom: 4 }}>Description</label>
+              <div><label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>Description</label>
                 <input value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} placeholder="What does this do?" /></div>
               <div style={{ display: 'flex', gap: 10 }}>
                 <button type="button" onClick={() => setShowCreate(false)} className="btn btn-secondary" style={{ flex: 1 }}>Cancel</button>
@@ -260,11 +260,11 @@ export default function Snippets() {
             <h2 style={{ marginBottom: 16 }}>🚀 PR Description Generator</h2>
             {!prResult ? (
               <form onSubmit={generatePR} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                <div><label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-3)', display: 'block', marginBottom: 4 }}>Related task / feature</label>
+                <div><label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>Related task / feature</label>
                   <input value={prForm.taskTitle} onChange={e => setPrForm(p => ({ ...p, taskTitle: e.target.value }))} placeholder="e.g. Implement JWT auth with refresh tokens" /></div>
-                <div><label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-3)', display: 'block', marginBottom: 4 }}>Changed files (comma-separated)</label>
+                <div><label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>Changed files (comma-separated)</label>
                   <input value={prForm.files} onChange={e => setPrForm(p => ({ ...p, files: e.target.value }))} placeholder="auth.js, middleware/auth.js, routes/users.js" /></div>
-                <div><label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-3)', display: 'block', marginBottom: 4 }}>Diff / description of changes</label>
+                <div><label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>Diff / description of changes</label>
                   <textarea value={prForm.diff} onChange={e => setPrForm(p => ({ ...p, diff: e.target.value }))} rows={6} placeholder="Paste git diff or describe what changed..." style={{ fontFamily: 'monospace', fontSize: 12 }} /></div>
                 <div style={{ display: 'flex', gap: 10 }}>
                   <button type="button" onClick={() => setPrModal(false)} className="btn btn-secondary" style={{ flex: 1 }}>Cancel</button>
@@ -275,9 +275,9 @@ export default function Snippets() {
               <div>
                 <div style={{ marginBottom: 12 }}>
                   <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 4 }}>{prResult.title}</div>
-                  <p style={{ color: 'var(--text-2)', fontSize: 13 }}>{prResult.summary}</p>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: 13 }}>{prResult.summary}</p>
                 </div>
-                <pre style={{ background: 'var(--surface-3)', padding: 14, borderRadius: 8, fontSize: 12, overflow: 'auto', whiteSpace: 'pre-wrap', maxHeight: 320 }}>{prResult.markdownBody}</pre>
+                <pre style={{ background: 'var(--bg-base)', padding: 14, borderRadius: 8, fontSize: 12, overflow: 'auto', whiteSpace: 'pre-wrap', maxHeight: 320 }}>{prResult.markdownBody}</pre>
                 <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
                   <button onClick={() => { navigator.clipboard.writeText(prResult.markdownBody); toast.success('Copied!'); }} className="btn btn-secondary" style={{ flex: 1 }}>📋 Copy</button>
                   <button onClick={() => { setPrResult(null); setPrForm({ diff: '', files: '', taskTitle: '' }); }} className="btn btn-ghost" style={{ flex: 1 }}>← Back</button>

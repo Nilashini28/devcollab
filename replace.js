@@ -1,0 +1,20 @@
+const fs = require('fs');
+const path = require('path');
+const walk = dir => fs.readdirSync(dir).flatMap(f => fs.statSync(path.join(dir, f)).isDirectory() ? walk(path.join(dir, f)) : path.join(dir, f));
+const files = walk('frontend/src').filter(f => f.endsWith('.jsx'));
+files.forEach(f => {
+  let code = fs.readFileSync(f, 'utf8');
+  code = code.replace(/var\(--surface\)/g, 'var(--bg-surface)');
+  code = code.replace(/var\(--surface-2\)/g, 'var(--bg-base)');
+  code = code.replace(/var\(--surface-3\)/g, 'var(--bg-base)');
+  code = code.replace(/var\(--text-1\)/g, 'var(--text-primary)');
+  code = code.replace(/var\(--text-2\)/g, 'var(--text-secondary)');
+  code = code.replace(/var\(--text-3\)/g, 'var(--text-tertiary)');
+  code = code.replace(/var\(--border\)/g, 'var(--sidebar-border)');
+  code = code.replace(/'#F8F9FC'/g, "'var(--bg-base)'");
+  code = code.replace(/'#FFFFFF'/gi, "'var(--bg-surface)'");
+  code = code.replace(/'white'/gi, "'var(--bg-surface)'");
+  code = code.replace(/color: 'var\(--bg-surface\)'/g, "color: 'white'");
+  fs.writeFileSync(f, code);
+});
+console.log('Replacement complete.');

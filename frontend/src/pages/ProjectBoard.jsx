@@ -50,20 +50,20 @@ function TaskCard({ task, onClick, isDragging, remoteDragging, taskViewers }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           {task.assigneeId && <Avatar user={task.assigneeId} size="avatar-sm" />}
           {task.subTasks?.length > 0 && (
-            <span style={{ fontSize: 11, color: 'var(--text-3)' }}>✓ {completedSubs}/{task.subTasks.length}</span>
+            <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>✓ {completedSubs}/{task.subTasks.length}</span>
           )}
         </div>
         {task.dueDate ? (
-          <span style={{ fontSize: 11, color: overdue ? 'var(--danger)' : isToday(new Date(task.dueDate)) ? 'var(--warning)' : 'var(--text-3)', fontWeight: overdue ? 600 : 400 }}>
+          <span style={{ fontSize: 11, color: overdue ? 'var(--danger)' : isToday(new Date(task.dueDate)) ? 'var(--warning)' : 'var(--text-tertiary)', fontWeight: overdue ? 600 : 400 }}>
             {overdue ? '⚠ ' : ''}{format(new Date(task.dueDate), 'MMM d')}
           </span>
         ) : (
-          <span style={{ fontSize: 11, color: 'var(--text-3)' }}>Created {format(new Date(task.createdAt || Date.now()), 'MMM d')}</span>
+          <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>Created {format(new Date(task.createdAt || Date.now()), 'MMM d')}</span>
         )}
             </div>
       {remoteDragging && (
         <div style={{ position: 'absolute', inset: 0, background: 'rgba(255,255,255,0.7)', backdropFilter: 'blur(2px)', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, zIndex: 10 }}>
-          <div style={{ background: 'var(--surface)', padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600, color: 'var(--primary)', border: '1px solid var(--primary-light)', boxShadow: 'var(--shadow-sm)' }}>
+          <div style={{ background: 'var(--bg-surface)', padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600, color: 'var(--primary)', border: '1px solid var(--primary-light)', boxShadow: 'var(--shadow-sm)' }}>
             Being moved by {remoteDragging}...
           </div>
         </div>
@@ -87,7 +87,7 @@ function KanbanColumn({ column, tasks, onTaskClick, activeId, remoteDraggingStat
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <div style={{ width: 10, height: 10, borderRadius: '50%', background: column.color }} />
           <span style={{ fontWeight: 600, fontSize: 13 }}>{column.label}</span>
-          <span style={{ background: 'var(--border)', color: 'var(--text-2)', borderRadius: 99, padding: '1px 7px', fontSize: 11, fontWeight: 600 }}>{tasks.length}</span>
+          <span style={{ background: 'var(--sidebar-border)', color: 'var(--text-secondary)', borderRadius: 99, padding: '1px 7px', fontSize: 11, fontWeight: 600 }}>{tasks.length}</span>
         </div>
         {wip && <span style={{ fontSize: 10, color: 'var(--warning)', fontWeight: 600, background: 'var(--warning-light)', padding: '2px 6px', borderRadius: 4 }}>WIP limit</span>}
       </div>
@@ -97,7 +97,7 @@ function KanbanColumn({ column, tasks, onTaskClick, activeId, remoteDraggingStat
         ))}
       </SortableContext>
       {tasks.length === 0 && (
-        <div style={{ textAlign: 'center', padding: '20px 10px', color: 'var(--text-3)', fontSize: 13, border: '2px dashed var(--border)', borderRadius: 8, margin: '4px 0' }}>
+        <div style={{ textAlign: 'center', padding: '20px 10px', color: 'var(--text-tertiary)', fontSize: 13, border: '2px dashed var(--sidebar-border)', borderRadius: 8, margin: '4px 0' }}>
           Drop tasks here
         </div>
       )}
@@ -237,40 +237,40 @@ function TaskModal({ task, project, members, onClose, onUpdate, onDelete }) {
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="modal" style={{ maxWidth: 760, padding: 0 }}>
         {/* Header */}
-        <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+        <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--sidebar-border)', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
           <div style={{ flex: 1 }}>
             <input value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))} onBlur={e => saveField('title', e.target.value)}
               style={{ fontSize: 18, fontWeight: 700, border: 'none', padding: 0, background: 'transparent', width: '100%' }} placeholder="Task title" />
-            {viewers.length > 0 && <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 4 }}>👁 {viewers.slice(0,2).join(', ')} viewing</div>}
+            {viewers.length > 0 && <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 4 }}>👁 {viewers.slice(0,2).join(', ')} viewing</div>}
           </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <button onClick={generateCommit} disabled={generatingCommit} className="btn btn-secondary btn-sm" style={{ padding: '4px 10px', fontSize: 11 }}>
               {generatingCommit ? '⏳ Generating...' : '🤖 Copy AI Commit Message'}
             </button>
             <button onClick={() => { if (window.confirm('Delete this task?')) { onDelete(task._id); onClose(); } }} className="btn btn-sm" style={{ color: 'var(--danger)' }}>🗑</button>
-            <button onClick={onClose} style={{ color: 'var(--text-2)', fontSize: 18, padding: 4 }}>✕</button>
+            <button onClick={onClose} style={{ color: 'var(--text-secondary)', fontSize: 18, padding: 4 }}>✕</button>
           </div>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 220px', maxHeight: '75vh', overflow: 'hidden' }}>
           {/* Main */}
-          <div style={{ padding: 24, overflowY: 'auto', borderRight: '1px solid var(--border)' }}>
+          <div style={{ padding: 24, overflowY: 'auto', borderRight: '1px solid var(--sidebar-border)' }}>
             {/* Description */}
             <div style={{ marginBottom: 20 }}>
-              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Description</label>
+              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Description</label>
               <textarea value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} onBlur={e => saveField('description', e.target.value)}
                 style={{ marginTop: 6, resize: 'vertical', minHeight: 80 }} placeholder="Add a description..." />
               
               {/* AI Linked tasks */}
               {aiLinks.length > 0 && (
                 <div style={{ marginTop: 12, display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
-                  <span style={{ fontSize: 12, color: 'var(--text-3)' }}>🔗 See also:</span>
+                  <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>🔗 See also:</span>
                   {aiLinks.map(link => (
                     <button key={link.taskId} onClick={async () => {
                       await api.put(`/tasks/${task._id}`, { linkedTaskIds: [...(form.linkedTaskIds || []), link.taskId] });
                       setAiLinks(p => p.filter(l => l.taskId !== link.taskId));
                       toast.success('Task linked');
-                    }} className="btn btn-sm" style={{ padding: '2px 8px', fontSize: 11, background: 'var(--surface-3)', border: '1px solid var(--border)', borderRadius: 12, color: 'var(--primary)' }} title={link.reason}>
+                    }} className="btn btn-sm" style={{ padding: '2px 8px', fontSize: 11, background: 'var(--bg-base)', border: '1px solid var(--sidebar-border)', borderRadius: 12, color: 'var(--primary)' }} title={link.reason}>
                       [{link.title}]
                     </button>
                   ))}
@@ -281,23 +281,23 @@ function TaskModal({ task, project, members, onClose, onUpdate, onDelete }) {
             {/* Subtasks */}
             <div style={{ marginBottom: 20 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                   Subtasks {form.subTasks?.length > 0 && `(${form.subTasks.filter(s=>s.completed).length}/${form.subTasks.length})`}
                 </label>
                 <button onClick={generateBreakdown} className="btn btn-sm" style={{ fontSize: 11 }}>🤖 AI breakdown</button>
               </div>
               {form.subTasks?.map((sub, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', borderBottom: '1px solid var(--border)' }}>
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', borderBottom: '1px solid var(--sidebar-border)' }}>
                   <input type="checkbox" checked={sub.completed} onChange={async () => {
                     const updated = form.subTasks.map((s, j) => j === i ? { ...s, completed: !s.completed } : s);
                     setForm(p => ({ ...p, subTasks: updated }));
                     await api.put(`/tasks/${task._id}`, { subTasks: updated });
                     getSocket().emit('task:updated', { ...task, subTasks: updated });
                   }} style={{ width: 'auto' }} />
-                  <span style={{ fontSize: 13, textDecoration: sub.completed ? 'line-through' : 'none', color: sub.completed ? 'var(--text-3)' : 'var(--text-1)' }}>{sub.title}</span>
+                  <span style={{ fontSize: 13, textDecoration: sub.completed ? 'line-through' : 'none', color: sub.completed ? 'var(--text-tertiary)' : 'var(--text-primary)' }}>{sub.title}</span>
                 </div>
               ))}
-              {form.subTasks?.length === 0 && <div style={{ color: 'var(--text-3)', fontSize: 13 }}>No subtasks yet</div>}
+              {form.subTasks?.length === 0 && <div style={{ color: 'var(--text-tertiary)', fontSize: 13 }}>No subtasks yet</div>}
             </div>
 
             {showAiBreakdown && (
@@ -315,8 +315,8 @@ function TaskModal({ task, project, members, onClose, onUpdate, onDelete }) {
       }} className="btn btn-sm btn-primary">Create All on Board</button>
     )}
   </div>
-                {breakdownLoading ? <div style={{ color: 'var(--text-2)' }}>Generating...</div> : breakdown?.tasks?.map((t, i) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid var(--border)' }}>
+                {breakdownLoading ? <div style={{ color: 'var(--text-secondary)' }}>Generating...</div> : breakdown?.tasks?.map((t, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid var(--sidebar-border)' }}>
                     <div>
                       <span className={`badge badge-${t.priority}`}>{t.priority}</span>
                       <span style={{ marginLeft: 8, fontSize: 13 }}>{t.title}</span>
@@ -335,9 +335,9 @@ function TaskModal({ task, project, members, onClose, onUpdate, onDelete }) {
             {/* History */}
             {task.history?.length > 0 && (
               <div style={{ marginBottom: 20 }}>
-                <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Activity log</label>
+                <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Activity log</label>
                 {task.history.slice(-5).reverse().map((h, i) => (
-                  <div key={i} style={{ fontSize: 12, color: 'var(--text-2)', padding: '4px 0', borderBottom: '1px solid var(--border)' }}>
+                  <div key={i} style={{ fontSize: 12, color: 'var(--text-secondary)', padding: '4px 0', borderBottom: '1px solid var(--sidebar-border)' }}>
                     <span style={{ fontWeight: 500 }}>{h.field}</span> changed from <code>{h.from || '—'}</code> to <code>{h.to}</code> · {new Date(h.timestamp).toLocaleDateString()}
                   </div>
                 ))}
@@ -346,7 +346,7 @@ function TaskModal({ task, project, members, onClose, onUpdate, onDelete }) {
 
             {/* Comments */}
             <div>
-              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Comments</label>
+              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Comments</label>
               <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {comments.map(c => (
                   <div key={c._id} style={{ display: 'flex', gap: 10 }}>
@@ -354,9 +354,9 @@ function TaskModal({ task, project, members, onClose, onUpdate, onDelete }) {
                     <div style={{ flex: 1 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
                         <span style={{ fontWeight: 600, fontSize: 12 }}>{c.authorId?.name}</span>
-                        <span style={{ fontSize: 11, color: 'var(--text-3)' }}>{new Date(c.createdAt).toLocaleDateString()}</span>
+                        <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{new Date(c.createdAt).toLocaleDateString()}</span>
                       </div>
-                      <div style={{ fontSize: 13, background: 'var(--surface-3)', padding: '8px 12px', borderRadius: 8 }}>{c.body}</div>
+                      <div style={{ fontSize: 13, background: 'var(--bg-base)', padding: '8px 12px', borderRadius: 8 }}>{c.body}</div>
                     </div>
                   </div>
                 ))}
@@ -366,20 +366,20 @@ function TaskModal({ task, project, members, onClose, onUpdate, onDelete }) {
                   placeholder="Add a comment..." style={{ flex: 1 }} />
                 <button type="submit" className="btn btn-primary btn-sm" disabled={submitting}>Post</button>
               </form>
-              {typing && <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 8, height: 16 }}>{typing} is typing<span className="bouncing-ellipsis"></span></div>}
+              {typing && <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 8, height: 16 }}>{typing} is typing<span className="bouncing-ellipsis"></span></div>}
             </div>
           </div>
 
           {/* Sidebar fields */}
           <div style={{ padding: 16, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div>
-              <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-3)', textTransform: 'uppercase', marginBottom: 4, display: 'block' }}>Status</label>
+              <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', marginBottom: 4, display: 'block' }}>Status</label>
               <select value={form.status} onChange={e => { setForm(p => ({ ...p, status: e.target.value })); saveField('status', e.target.value); }}>
                 {COLUMNS.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
               </select>
             </div>
             <div>
-              <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-3)', textTransform: 'uppercase', marginBottom: 4, display: 'block' }}>Priority</label>
+              <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', marginBottom: 4, display: 'block' }}>Priority</label>
               <select value={form.priority} onChange={e => { setForm(p => ({ ...p, priority: e.target.value })); saveField('priority', e.target.value); }}>
                 <option value="P0">P0 — Critical</option>
                 <option value="P1">P1 — High</option>
@@ -387,22 +387,22 @@ function TaskModal({ task, project, members, onClose, onUpdate, onDelete }) {
               </select>
             </div>
             <div>
-              <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-3)', textTransform: 'uppercase', marginBottom: 4, display: 'block' }}>Assignee</label>
+              <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', marginBottom: 4, display: 'block' }}>Assignee</label>
               <select value={form.assigneeId?._id || form.assigneeId || ''} onChange={e => { setForm(p => ({ ...p, assigneeId: e.target.value })); saveField('assigneeId', e.target.value); }}>
                 <option value="">Unassigned</option>
                 {members.map(m => m.userId && <option key={m.userId._id} value={m.userId._id}>{m.userId.name}</option>)}
               </select>
             </div>
             <div>
-              <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-3)', textTransform: 'uppercase', marginBottom: 4, display: 'block' }}>Due date</label>
+              <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', marginBottom: 4, display: 'block' }}>Due date</label>
               <input type="date" value={form.dueDate ? form.dueDate.split('T')[0] : ''} onChange={e => { setForm(p => ({ ...p, dueDate: e.target.value })); saveField('dueDate', e.target.value); }} />
             </div>
             <div>
-              <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-3)', textTransform: 'uppercase', marginBottom: 4, display: 'block' }}>Labels</label>
+              <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', marginBottom: 4, display: 'block' }}>Labels</label>
               <input value={form.labels?.join(', ') || ''} onChange={e => setForm(p => ({ ...p, labels: e.target.value.split(',').map(s=>s.trim()).filter(Boolean) }))}
                 onBlur={e => saveField('labels', e.target.value.split(',').map(s=>s.trim()).filter(Boolean))} placeholder="bug, feature, ux" />
             </div>
-            <div style={{ background: 'var(--surface-2)', borderRadius: 8, padding: 10, fontSize: 12, color: 'var(--text-2)' }}>
+            <div style={{ background: 'var(--bg-base)', borderRadius: 8, padding: 10, fontSize: 12, color: 'var(--text-secondary)' }}>
               <div>⏱ <strong>{daysInColumn}</strong> day{daysInColumn !== 1 ? 's' : ''} in this column</div>
               {task.createdBy && <div style={{ marginTop: 4 }}>Created by {task.createdBy.name}</div>}
             </div>
@@ -480,7 +480,7 @@ function CreateTaskModal({ projectId, project, members, onClose, onCreate }) {
           <h2 style={{ fontSize: 16, fontWeight: 700 }}>New Task</h2>
           <div style={{ display: 'flex', gap: 8 }}>
             <button onClick={generateStandup} className="btn btn-secondary btn-sm">📋 Standup</button>
-            <button onClick={onClose} style={{ color: 'var(--text-2)' }}>✕</button>
+            <button onClick={onClose} style={{ color: 'var(--text-secondary)' }}>✕</button>
           </div>
         </div>
 
@@ -526,11 +526,11 @@ function CreateTaskModal({ projectId, project, members, onClose, onCreate }) {
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-3)', display: 'block', marginBottom: 4 }}>Title *</label>
+            <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>Title *</label>
             <input value={form.title} onChange={e => { setForm(p => ({ ...p, title: e.target.value })); setNameSuggestions([]); }} required placeholder="What needs to be done?" />
             {nameSuggestions.length > 0 && (
               <div style={{ marginTop: 6 }}>
-                <div style={{ fontSize: 11, color: 'var(--text-3)', marginBottom: 4 }}>🤖 AI suggests:</div>
+                <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 4 }}>🤖 AI suggests:</div>
                 {nameSuggestions.map((s, i) => (
                   <button key={i} type="button" onClick={() => { setForm(p => ({ ...p, title: s })); setNameSuggestions([]); }}
                     style={{ display: 'block', width: '100%', textAlign: 'left', padding: '5px 8px', borderRadius: 4, fontSize: 12, background: 'var(--primary-light)', color: 'var(--primary)', marginBottom: 2, cursor: 'pointer', border: 'none' }}>
@@ -542,7 +542,7 @@ function CreateTaskModal({ projectId, project, members, onClose, onCreate }) {
           </div>
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-3)' }}>Description</label>
+              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)' }}>Description</label>
               <button type="button" onClick={generateBreakdown} disabled={breakdownLoading} className="btn btn-secondary btn-sm" style={{ padding: '2px 8px', fontSize: 11 }}>
                 {breakdownLoading ? '🤖 Generating...' : '🤖 Generate Breakdown'}
               </button>
@@ -551,8 +551,8 @@ function CreateTaskModal({ projectId, project, members, onClose, onCreate }) {
             
             {form.subTasks?.length > 0 && (
               <div style={{ marginTop: 12 }}>
-                <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-3)', display: 'block', marginBottom: 4 }}>AI Generated Subtasks</label>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, background: 'var(--surface-2)', padding: 10, borderRadius: 8 }}>
+                <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>AI Generated Subtasks</label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, background: 'var(--bg-base)', padding: 10, borderRadius: 8 }}>
                   {form.subTasks.map((s, i) => (
                     <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
                       <input type="checkbox" checked={s.completed} onChange={e => {
@@ -568,7 +568,7 @@ function CreateTaskModal({ projectId, project, members, onClose, onCreate }) {
                       <button type="button" onClick={() => {
                         const newSub = form.subTasks.filter((_, idx) => idx !== i);
                         setForm({ ...form, subTasks: newSub });
-                      }} style={{ color: 'var(--text-3)', background: 'none', border: 'none', cursor: 'pointer' }}>✕</button>
+                      }} style={{ color: 'var(--text-tertiary)', background: 'none', border: 'none', cursor: 'pointer' }}>✕</button>
                     </div>
                   ))}
                   <button type="button" onClick={() => setForm(p => ({...p, subTasks: [...p.subTasks, {title: '', completed: false}]}))} className="btn btn-secondary btn-sm" style={{ alignSelf: 'flex-start', marginTop: 4 }}>+ Add Subtask</button>
@@ -578,7 +578,7 @@ function CreateTaskModal({ projectId, project, members, onClose, onCreate }) {
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <div>
-              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-3)', display: 'block', marginBottom: 4 }}>Priority</label>
+              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>Priority</label>
               <select value={form.priority} onChange={e => setForm(p => ({ ...p, priority: e.target.value }))}>
                 <option value="P0">P0 — Critical</option>
                 <option value="P1">P1 — High</option>
@@ -586,7 +586,7 @@ function CreateTaskModal({ projectId, project, members, onClose, onCreate }) {
               </select>
             </div>
             <div>
-              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-3)', display: 'block', marginBottom: 4 }}>Status</label>
+              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>Status</label>
               <select value={form.status} onChange={e => setForm(p => ({ ...p, status: e.target.value }))}>
                 {COLUMNS.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
               </select>
@@ -594,19 +594,19 @@ function CreateTaskModal({ projectId, project, members, onClose, onCreate }) {
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <div>
-              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-3)', display: 'block', marginBottom: 4 }}>Assignee</label>
+              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>Assignee</label>
               <select value={form.assigneeId} onChange={e => setForm(p => ({ ...p, assigneeId: e.target.value }))}>
                 <option value="">Unassigned</option>
                 {members.map(m => m.userId && <option key={m.userId._id} value={m.userId._id}>{m.userId.name}</option>)}
               </select>
             </div>
             <div>
-              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-3)', display: 'block', marginBottom: 4 }}>Due date</label>
+              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>Due date</label>
               <input type="date" value={form.dueDate || ''} onChange={e => setForm(p => ({ ...p, dueDate: e.target.value }))} />
             </div>
           </div>
           <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-3)', display: 'block', marginBottom: 4 }}>Labels (comma-separated)</label>
+            <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>Labels (comma-separated)</label>
             <input value={form.labels} onChange={e => setForm(p => ({ ...p, labels: e.target.value }))} placeholder="bug, feature, ux" />
           </div>
           <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
@@ -805,8 +805,8 @@ export default function ProjectBoard() {
   if (error) return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '50vh' }}>
       <div style={{ fontSize: 48, marginBottom: 16 }}>⚠️</div>
-      <h3 style={{ marginBottom: 8, color: 'var(--text-1)' }}>Something went wrong</h3>
-      <p style={{ color: 'var(--text-3)', marginBottom: 20 }}>We couldn't load this project board.</p>
+      <h3 style={{ marginBottom: 8, color: 'var(--text-primary)' }}>Something went wrong</h3>
+      <p style={{ color: 'var(--text-tertiary)', marginBottom: 20 }}>We couldn't load this project board.</p>
       <button onClick={loadData} className="btn btn-secondary">Retry →</button>
     </div>
   );
@@ -814,7 +814,7 @@ export default function ProjectBoard() {
   return (
     <div>
       {/* Project header */}
-      <div style={{ padding: '16px 24px', background: 'var(--surface)', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+      <div style={{ padding: '16px 24px', background: 'var(--bg-surface)', borderBottom: '1px solid var(--sidebar-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{ width: 10, height: 10, borderRadius: '50%', background: project?.colourLabel }} />
           <h1 style={{ fontSize: 18, fontWeight: 700 }}>{project?.name}</h1>
@@ -823,15 +823,15 @@ export default function ProjectBoard() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           {/* Presence */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-2)' }}>👥 {presence.length} people viewing:</span>
+            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>👥 {presence.length} people viewing:</span>
             <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
               {presence.slice(0, 8).map((p, i) => (
                 <div key={i} style={{ position: 'relative', animation: 'popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards' }}>
-                  <div className="avatar avatar-sm" title={p.userName} style={{ background: '#6366f1', border: '2px solid var(--surface)' }}>{p.avatar ? <img src={p.avatar} style={{width:'100%', height:'100%', borderRadius:'50%'}}/> : p.userName?.charAt(0)}</div>
-                  <div style={{ position: 'absolute', bottom: 0, right: 0, width: 8, height: 8, background: '#10b981', border: '1px solid var(--surface)', borderRadius: '50%', animation: 'pulse 2s infinite' }} />
+                  <div className="avatar avatar-sm" title={p.userName} style={{ background: '#6366f1', border: '2px solid var(--bg-surface)' }}>{p.avatar ? <img src={p.avatar} style={{width:'100%', height:'100%', borderRadius:'50%'}}/> : p.userName?.charAt(0)}</div>
+                  <div style={{ position: 'absolute', bottom: 0, right: 0, width: 8, height: 8, background: '#10b981', border: '1px solid var(--bg-surface)', borderRadius: '50%', animation: 'pulse 2s infinite' }} />
                 </div>
               ))}
-              {presence.length > 8 && <span style={{ fontSize: 11, color: 'var(--text-3)', fontWeight: 600 }}>+{presence.length - 8} more</span>}
+              {presence.length > 8 && <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontWeight: 600 }}>+{presence.length - 8} more</span>}
             </div>
           </div>
           {/* Filters */}
@@ -846,9 +846,9 @@ export default function ProjectBoard() {
             <option value="">Assignee</option>
             {members.map(m => m.userId && <option key={m.userId._id} value={m.userId._id}>{m.userId.name}</option>)}
           </select>
-          <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 6 }}>
+          <div style={{ display: 'flex', border: '1px solid var(--sidebar-border)', borderRadius: 6 }}>
             {['kanban', 'list'].map(v => (
-              <button key={v} onClick={() => setView(v)} className="btn btn-sm" style={{ borderRadius: 0, background: view === v ? 'var(--primary)' : 'transparent', color: view === v ? 'white' : 'var(--text-2)' }}>
+              <button key={v} onClick={() => setView(v)} className="btn btn-sm" style={{ borderRadius: 0, background: view === v ? 'var(--primary)' : 'transparent', color: view === v ? 'var(--bg-surface)' : 'var(--text-secondary)' }}>
                 {v === 'kanban' ? '⬜' : '☰'} {v}
               </button>
             ))}
@@ -862,19 +862,19 @@ export default function ProjectBoard() {
         </div>
       </div>
       {projectSummary && (
-        <div style={{ padding: '12px 24px', background: 'var(--primary-light)', borderBottom: '1px solid var(--border)', fontSize: 13, animation: 'fadeIn 0.2s ease-out' }}>
+        <div style={{ padding: '12px 24px', background: 'var(--primary-light)', borderBottom: '1px solid var(--sidebar-border)', fontSize: 13, animation: 'fadeIn 0.2s ease-out' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div><div style={{ fontWeight: 700, marginBottom: 4, color: 'var(--primary)' }}>🤖 AI Project Summary</div><div style={{ color: 'var(--text-1)' }}>{projectSummary}</div></div>
-            <button onClick={() => setProjectSummary(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-3)' }}>✕</button>
+            <div><div style={{ fontWeight: 700, marginBottom: 4, color: 'var(--primary)' }}>🤖 AI Project Summary</div><div style={{ color: 'var(--text-primary)' }}>{projectSummary}</div></div>
+            <button onClick={() => setProjectSummary(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)' }}>✕</button>
           </div>
         </div>
       )}
 
       {tasks.length === 0 && !loading && (
-        <div style={{ margin: '24px 24px 0', padding: 40, textAlign: 'center', background: 'var(--surface)', border: '2px dashed var(--border)', borderRadius: 'var(--radius-lg)' }}>
+        <div style={{ margin: '24px 24px 0', padding: 40, textAlign: 'center', background: 'var(--bg-surface)', border: '2px dashed var(--sidebar-border)', borderRadius: 'var(--radius-lg)' }}>
           <div style={{ fontSize: 40, marginBottom: 12 }}>📋</div>
           <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>This board is empty</h3>
-          <p style={{ color: 'var(--text-2)', marginBottom: 20 }}>Get started by creating a task or load demo data.</p>
+          <p style={{ color: 'var(--text-secondary)', marginBottom: 20 }}>Get started by creating a task or load demo data.</p>
           <div style={{ display: 'flex', justifyContent: 'center', gap: 12 }}>
             <button onClick={async () => {
               try {
@@ -902,25 +902,25 @@ export default function ProjectBoard() {
         )
       ) : (
         <div style={{ padding: 20 }}>
-          <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
+          <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--sidebar-border)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
-                <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface-3)' }}>
+                <tr style={{ borderBottom: '1px solid var(--sidebar-border)', background: 'var(--bg-base)' }}>
                   {['Title','Assignee','Priority','Status','Due date'].map(h => (
-                    <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontSize: 12, fontWeight: 600, color: 'var(--text-2)' }}>{h}</th>
+                    <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {tasks.filter(t => !search || t.title.toLowerCase().includes(search.toLowerCase())).map(task => (
-                  <tr key={task._id} onClick={() => setSelectedTask(task)} style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer' }}
-                    onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-3)'}
+                  <tr key={task._id} onClick={() => setSelectedTask(task)} style={{ borderBottom: '1px solid var(--sidebar-border)', cursor: 'pointer' }}
+                    onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-base)'}
                     onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                     <td style={{ padding: '10px 14px', fontSize: 13, fontWeight: 500 }}>{task.title}</td>
-                    <td style={{ padding: '10px 14px' }}>{task.assigneeId ? <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Avatar user={task.assigneeId} size="avatar-sm" /><span style={{ fontSize: 12 }}>{task.assigneeId.name}</span></div> : <span style={{ color: 'var(--text-3)', fontSize: 12 }}>—</span>}</td>
+                    <td style={{ padding: '10px 14px' }}>{task.assigneeId ? <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Avatar user={task.assigneeId} size="avatar-sm" /><span style={{ fontSize: 12 }}>{task.assigneeId.name}</span></div> : <span style={{ color: 'var(--text-tertiary)', fontSize: 12 }}>—</span>}</td>
                     <td style={{ padding: '10px 14px' }}><span className={`badge badge-${task.priority}`}>{task.priority}</span></td>
                     <td style={{ padding: '10px 14px' }}><span style={{ fontSize: 12, color: COLUMNS.find(c => c.id === task.status)?.color }}>{COLUMNS.find(c => c.id === task.status)?.label}</span></td>
-                    <td style={{ padding: '10px 14px', fontSize: 12, color: task.dueDate && isPast(new Date(task.dueDate)) ? 'var(--danger)' : 'var(--text-2)' }}>
+                    <td style={{ padding: '10px 14px', fontSize: 12, color: task.dueDate && isPast(new Date(task.dueDate)) ? 'var(--danger)' : 'var(--text-secondary)' }}>
                       {task.dueDate ? format(new Date(task.dueDate), 'MMM d, yyyy') : '—'}
                     </td>
                   </tr>

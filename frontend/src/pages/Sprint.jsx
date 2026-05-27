@@ -11,13 +11,13 @@ function ScoreDial({ score, label }) {
   return (
     <div style={{ textAlign: 'center' }}>
       <svg width={100} height={100} style={{ transform: 'rotate(-90deg)' }}>
-        <circle cx={50} cy={50} r={36} fill="none" stroke="var(--border)" strokeWidth={8} />
+        <circle cx={50} cy={50} r={36} fill="none" stroke="var(--sidebar-border)" strokeWidth={8} />
         <circle cx={50} cy={50} r={36} fill="none" stroke={color} strokeWidth={8}
           strokeDasharray={circumference} strokeDashoffset={progress} strokeLinecap="round"
           style={{ transition: 'stroke-dashoffset 1s ease' }} />
         <text x={50} y={55} textAnchor="middle" style={{ transform: 'rotate(90deg)', transformOrigin: '50px 50px', fill: color, fontSize: 22, fontWeight: 700 }}>{score}</text>
       </svg>
-      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-2)', marginTop: -8 }}>{label}</div>
+      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', marginTop: -8 }}>{label}</div>
     </div>
   );
 }
@@ -63,7 +63,7 @@ export default function Sprint() {
   );
 
   if (!data) return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 300, color: 'var(--text-3)' }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 300, color: 'var(--text-tertiary)' }}>
       <div style={{ textAlign: 'center' }}>
         <div style={{ fontSize: 40, marginBottom: 12 }}>📊</div>
         <div>Sprint data unavailable</div>
@@ -93,9 +93,9 @@ export default function Sprint() {
             <div style={{ fontSize: 18, fontWeight: 700, color: data.healthScore >= 75 ? 'var(--success)' : data.healthScore >= 50 ? 'var(--warning)' : 'var(--danger)' }}>
               {data.healthLabel}
             </div>
-            <p style={{ color: 'var(--text-2)', fontSize: 13, marginTop: 4, maxWidth: 280 }}>{data.summary}</p>
+            <p style={{ color: 'var(--text-secondary)', fontSize: 13, marginTop: 4, maxWidth: 280 }}>{data.summary}</p>
             <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-              <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 99, background: data.velocityTrend === 'improving' ? 'var(--success-light)' : data.velocityTrend === 'declining' ? 'var(--danger-light)' : 'var(--surface-3)', color: data.velocityTrend === 'improving' ? 'var(--success)' : data.velocityTrend === 'declining' ? 'var(--danger)' : 'var(--text-2)', fontWeight: 600 }}>
+              <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 99, background: data.velocityTrend === 'improving' ? 'var(--success-light)' : data.velocityTrend === 'declining' ? 'var(--danger-light)' : 'var(--bg-base)', color: data.velocityTrend === 'improving' ? 'var(--success)' : data.velocityTrend === 'declining' ? 'var(--danger)' : 'var(--text-secondary)', fontWeight: 600 }}>
                 {data.velocityTrend === 'improving' ? '📈' : data.velocityTrend === 'declining' ? '📉' : '→'} Velocity {data.velocityTrend}
               </span>
             </div>
@@ -108,14 +108,14 @@ export default function Sprint() {
           {data.velocity?.length > 0 ? (
             <ResponsiveContainer width="100%" height={120}>
               <LineChart data={data.velocity}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                <XAxis dataKey="day" tick={{ fontSize: 11, fill: 'var(--text-3)' }} />
-                <YAxis tick={{ fontSize: 11, fill: 'var(--text-3)' }} allowDecimals={false} />
-                <Tooltip contentStyle={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12 }} />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--sidebar-border)" />
+                <XAxis dataKey="day" tick={{ fontSize: 11, fill: 'var(--text-tertiary)' }} />
+                <YAxis tick={{ fontSize: 11, fill: 'var(--text-tertiary)' }} allowDecimals={false} />
+                <Tooltip contentStyle={{ background: 'var(--bg-surface)', border: '1px solid var(--sidebar-border)', borderRadius: 8, fontSize: 12 }} />
                 <Line type="monotone" dataKey="closed" stroke="var(--primary)" strokeWidth={2} dot={{ fill: 'var(--primary)', r: 3 }} />
               </LineChart>
             </ResponsiveContainer>
-          ) : <div style={{ color: 'var(--text-3)', textAlign: 'center', paddingTop: 40 }}>Not enough data yet</div>}
+          ) : <div style={{ color: 'var(--text-tertiary)', textAlign: 'center', paddingTop: 40 }}>Not enough data yet</div>}
         </div>
 
         {/* Task Distribution Pie Chart */}
@@ -129,11 +129,11 @@ export default function Sprint() {
                     <Cell key={`cell-${index}`} fill={['#64748b', '#f59e0b', '#3b82f6', '#10b981'][index % 4]} />
                   ))}
                 </Pie>
-                <Tooltip contentStyle={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12 }} />
+                <Tooltip contentStyle={{ background: 'var(--bg-surface)', border: '1px solid var(--sidebar-border)', borderRadius: 8, fontSize: 12 }} />
                 <Legend verticalAlign="middle" align="right" layout="vertical" wrapperStyle={{ fontSize: 11 }} />
               </PieChart>
             </ResponsiveContainer>
-          ) : <div style={{ color: 'var(--text-3)', textAlign: 'center', paddingTop: 40 }}>No tasks available</div>}
+          ) : <div style={{ color: 'var(--text-tertiary)', textAlign: 'center', paddingTop: 40 }}>No tasks available</div>}
         </div>
       </div>
 
@@ -144,9 +144,9 @@ export default function Sprint() {
           {data.blockedTasks?.length === 0 ? (
             <div style={{ color: 'var(--success)', fontSize: 13 }}>✅ No blocked tasks!</div>
           ) : data.blockedTasks?.map((t, i) => (
-            <div key={i} style={{ padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
+            <div key={i} style={{ padding: '8px 0', borderBottom: '1px solid var(--sidebar-border)' }}>
               <div style={{ fontWeight: 500, fontSize: 13 }}>{t.title}</div>
-              <div style={{ fontSize: 11, color: 'var(--text-3)' }}>In column for {t.daysInColumn} days · {t.assignee || 'Unassigned'}</div>
+              <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>In column for {t.daysInColumn} days · {t.assignee || 'Unassigned'}</div>
             </div>
           ))}
         </div>
@@ -157,14 +157,14 @@ export default function Sprint() {
           {data.atRiskTasks?.length === 0 ? (
             <div style={{ color: 'var(--success)', fontSize: 13 }}>✅ Sprint on track!</div>
           ) : data.atRiskTasks?.map((t, i) => (
-            <div key={i} style={{ padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
+            <div key={i} style={{ padding: '8px 0', borderBottom: '1px solid var(--sidebar-border)' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div style={{ fontWeight: 500, fontSize: 13 }}>{t.title}</div>
                 <div style={{ fontSize: 11, background: 'var(--warning-light)', color: '#b45309', padding: '1px 6px', borderRadius: 4, fontWeight: 600 }}>
                   {Math.round((t.confidence || 0.5) * 100)}% risk
                 </div>
               </div>
-              <div style={{ fontSize: 11, color: 'var(--text-3)' }}>{t.reason}</div>
+              <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{t.reason}</div>
             </div>
           ))}
         </div>
@@ -177,19 +177,19 @@ export default function Sprint() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
             <div>
               <div style={{ fontWeight: 600, color: 'var(--success)', marginBottom: 8 }}>✅ What went well</div>
-              {data.retrospective.wentWell?.map((w, i) => <div key={i} style={{ fontSize: 13, padding: '3px 0', color: 'var(--text-2)' }}>• {w}</div>)}
+              {data.retrospective.wentWell?.map((w, i) => <div key={i} style={{ fontSize: 13, padding: '3px 0', color: 'var(--text-secondary)' }}>• {w}</div>)}
             </div>
             <div>
               <div style={{ fontWeight: 600, color: 'var(--danger)', marginBottom: 8 }}>❌ What didn't go well</div>
-              {data.retrospective.didntGoWell?.map((w, i) => <div key={i} style={{ fontSize: 13, padding: '3px 0', color: 'var(--text-2)' }}>• {w}</div>)}
+              {data.retrospective.didntGoWell?.map((w, i) => <div key={i} style={{ fontSize: 13, padding: '3px 0', color: 'var(--text-secondary)' }}>• {w}</div>)}
             </div>
             <div>
               <div style={{ fontWeight: 600, color: 'var(--warning)', marginBottom: 8 }}>🔍 Patterns to watch</div>
-              {data.retrospective.patterns?.map((w, i) => <div key={i} style={{ fontSize: 13, padding: '3px 0', color: 'var(--text-2)' }}>• {w}</div>)}
+              {data.retrospective.patterns?.map((w, i) => <div key={i} style={{ fontSize: 13, padding: '3px 0', color: 'var(--text-secondary)' }}>• {w}</div>)}
             </div>
             <div>
               <div style={{ fontWeight: 600, color: 'var(--info)', marginBottom: 8 }}>💡 Recommendations</div>
-              {data.retrospective.recommendations?.map((w, i) => <div key={i} style={{ fontSize: 13, padding: '3px 0', color: 'var(--text-2)' }}>• {w}</div>)}
+              {data.retrospective.recommendations?.map((w, i) => <div key={i} style={{ fontSize: 13, padding: '3px 0', color: 'var(--text-secondary)' }}>• {w}</div>)}
             </div>
           </div>
         </div>
@@ -199,20 +199,20 @@ export default function Sprint() {
       {explainResult && (
         <div className="card">
           <div style={{ fontWeight: 700, marginBottom: 12, fontSize: 14 }}>🤖 Codebase Architecture (AI-Generated)</div>
-          <p style={{ color: 'var(--text-2)', fontSize: 13, marginBottom: 14 }}>{explainResult.overview}</p>
+          <p style={{ color: 'var(--text-secondary)', fontSize: 13, marginBottom: 14 }}>{explainResult.overview}</p>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
               <div style={{ fontWeight: 600, fontSize: 12, marginBottom: 8 }}>Components</div>
               {explainResult.components?.map((c, i) => (
-                <div key={i} style={{ padding: '6px 0', borderBottom: '1px solid var(--border)' }}>
-                  <div style={{ fontWeight: 500, fontSize: 13 }}>{c.name} <span style={{ fontSize: 11, color: 'var(--text-3)', fontFamily: 'monospace' }}>({c.language})</span></div>
-                  <div style={{ fontSize: 12, color: 'var(--text-2)' }}>{c.purpose}</div>
+                <div key={i} style={{ padding: '6px 0', borderBottom: '1px solid var(--sidebar-border)' }}>
+                  <div style={{ fontWeight: 500, fontSize: 13 }}>{c.name} <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: 'monospace' }}>({c.language})</span></div>
+                  <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{c.purpose}</div>
                 </div>
               ))}
             </div>
             <div>
               <div style={{ fontWeight: 600, fontSize: 12, marginBottom: 8 }}>Patterns</div>
-              {explainResult.patterns?.map((p, i) => <div key={i} style={{ fontSize: 13, color: 'var(--text-2)', padding: '2px 0' }}>• {p}</div>)}
+              {explainResult.patterns?.map((p, i) => <div key={i} style={{ fontSize: 13, color: 'var(--text-secondary)', padding: '2px 0' }}>• {p}</div>)}
               <div style={{ fontWeight: 600, fontSize: 12, marginBottom: 8, marginTop: 12 }}>Gaps</div>
               {explainResult.gaps?.map((g, i) => <div key={i} style={{ fontSize: 13, color: 'var(--warning)', padding: '2px 0' }}>⚠ {g}</div>)}
             </div>
