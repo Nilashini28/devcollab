@@ -177,6 +177,52 @@ Generate 5-8 subtasks. For each, check if it duplicates an existing task title a
   }
 });
 
+// 1a. AI Task Breakdown Create
+router.post('/breakdown/create', auth, aiLimiter, async (req, res) => {
+  try {
+    const { projectId, tasks } = req.body;
+    if (!Array.isArray(tasks) || tasks.length === 0) {
+      return res.status(400).json({ error: 'Tasks must be an array with at least 1 item' });
+    }
+    
+    const tasksToInsert = tasks.map(t => ({
+      projectId,
+      title: t.title,
+      priority: t.priority || 'P2',
+      labels: t.labels || [],
+      status: 'todo'
+    }));
+
+    await Task.insertMany(tasksToInsert);
+    res.json({ created: tasksToInsert.length });
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to create tasks', details: e.message });
+  }
+});
+
+// 1a. AI Task Breakdown Create
+router.post('/breakdown/create', auth, aiLimiter, async (req, res) => {
+  try {
+    const { projectId, tasks } = req.body;
+    if (!Array.isArray(tasks) || tasks.length === 0) {
+      return res.status(400).json({ error: 'Tasks must be an array with at least 1 item' });
+    }
+    
+    const tasksToInsert = tasks.map(t => ({
+      projectId,
+      title: t.title,
+      priority: t.priority || 'P2',
+      labels: t.labels || [],
+      status: 'todo'
+    }));
+
+    await Task.insertMany(tasksToInsert);
+    res.json({ created: tasksToInsert.length });
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to create tasks', details: e.message });
+  }
+});
+
 // 2. Code Review
 router.post('/code-review', auth, aiLimiter, async (req, res) => {
   try {
@@ -187,7 +233,7 @@ router.post('/code-review', auth, aiLimiter, async (req, res) => {
 
     const recentSnippets = await Snippet.find({ projectId: req.body.projectId }).sort('-createdAt').limit(5).select('title code language');
     
-    const system = `You are a senior code reviewer. Return ONLY valid JSON, no preamble.`;
+    const system = `You are a senior code reviewer. Return ONLY valid JSON. No markdown fences. No explanation. Max 3 items per array.`;
     const prompt = `Review this ${language} code snippet.
 Task context: ${taskDescription || 'No task linked'}
 Recent project snippets for context:
@@ -198,20 +244,25 @@ Code to review:
 ${code}
 \`\`\`
 
-Return ONLY valid JSON:
+Return ONLY valid JSON in this exact structure:
 {
-  "score": 7,
-  "summary": "brief summary",
-  "bugs": [{ "line": 1, "issue": "description", "fix": "solution" }],
-  "performance": [{ "issue": "description", "fix": "solution" }],
-  "security": [{ "issue": "description", "fix": "solution" }],
-  "readability": [{ "issue": "description", "fix": "solution" }],
-  "fixed_code": "corrected version of the code"
+  "score": <integer 1-10>,
+  "bugs": ["specific issue description"],
+  "performance": ["specific suggestion"],
+  "security": ["specific concern"],
+  "readability": ["specific suggestion"]
 }`;
 
     const text = await callClaude(system, prompt, 2000);
     const clean = text.replace(/```json|```/g, '').trim();
-    const result = JSON.parse(clean);
+    
+    let result;
+    try {
+      result = JSON.parse(clean);
+    } catch (parseError) {
+      result = { score: 6, bugs: [], performance: [], security: [], readability: ['AI response could not be parsed'] };
+    }
+
     if (snippetId) {
       await Snippet.findByIdAndUpdate(snippetId, { aiReview: result });
     }

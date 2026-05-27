@@ -13,57 +13,14 @@ function CodeHighlight({ code, language }) {
   );
 }
 
-function ReviewPanel({ review, loading, onApplyFix }) {
-  if (loading) return <div style={{ padding: 20, color: 'var(--text-secondary)' }}>🤖 Reviewing code...</div>;
-  if (!review) return null;
-  const scoreColor = review.score >= 8 ? 'var(--success)' : review.score >= 5 ? 'var(--warning)' : 'var(--danger)';
-  return (
-    <div style={{ marginTop: 16, border: '1px solid var(--sidebar-border)', borderRadius: 'var(--radius)', overflow: 'hidden' }}>
-      <div style={{ padding: '12px 16px', background: 'var(--bg-base)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <span style={{ fontWeight: 700, fontSize: 13 }}>🤖 AI Code Review</span>
-        <div style={{ width: 44, height: 44, borderRadius: '50%', border: `3px solid ${scoreColor}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, fontWeight: 700, color: scoreColor }}>{review.score}</div>
-      </div>
-      <div style={{ padding: 14 }}>
-        <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 12 }}>{review.summary}</p>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {['bugs', 'performance', 'security', 'readability'].map(cat => {
-            if (!review[cat] || review[cat].length === 0) return null;
-            return (
-              <details key={cat} open>
-                <summary style={{ fontSize: 13, fontWeight: 700, cursor: 'pointer', textTransform: 'capitalize', color: 'var(--text-primary)' }}>
-                  {cat === 'bugs' ? '🐛' : cat === 'performance' ? '⚡' : cat === 'security' ? '🔒' : '📖'} {cat} ({review[cat].length})
-                </summary>
-                <div style={{ marginTop: 8, paddingLeft: 20 }}>
-                  {review[cat].map((item, i) => (
-                    <div key={i} style={{ padding: '8px 0', borderBottom: '1px solid var(--sidebar-border)' }}>
-                      <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>
-                        {item.line ? `Line ${item.line}: ` : ''}{item.issue}
-                      </div>
-                      <div style={{ fontSize: 12, color: 'var(--success)' }}>💡 Fix: {item.fix}</div>
-                    </div>
-                  ))}
-                </div>
-              </details>
-            );
-          })}
-        </div>
-        {review.fixed_code && (
-          <details style={{ marginTop: 12 }}>
-            <summary style={{ fontSize: 12, fontWeight: 600, cursor: 'pointer', color: 'var(--primary)' }}>✨ View fixed code</summary>
-            <pre className="code-block" style={{ marginTop: 8, fontSize: 12 }}>{review.fixed_code}</pre>
-            <button onClick={() => onApplyFix(review.fixed_code)} className="btn btn-primary btn-sm" style={{ marginTop: 12, width: '100%' }}>Apply AI Fixes to Snippet</button>
-          </details>
-        )}
-      </div>
-    </div>
-  );
-}
+import CodeReviewPanel from '../components/CodeReviewPanel';
 
 export default function Snippets() {
   const { projectId } = useParams();
   const [snippets, setSnippets] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [search, setSearch] = useState('');
   const [filterLang, setFilterLang] = useState('');
   const [showCreate, setShowCreate] = useState(false);
@@ -74,6 +31,7 @@ export default function Snippets() {
   const [prResult, setPrResult] = useState(null);
   const [prLoading, setPrLoading] = useState(false);
   const [form, setForm] = useState({ title: '', language: 'javascript', code: '', tags: '', description: '', linkedTaskId: '' });
+  const [reviewSnippet, setReviewSnippet] = useState(null);
 
   useEffect(() => {
     loadData();
@@ -85,7 +43,10 @@ export default function Snippets() {
       const r = await api.get(`/snippets?projectId=${projectId}`);
       setSnippets(r.data);
       if (r.data.length > 0) setSelected(r.data[0]);
-    } catch { toast.error('Failed to load snippets'); }
+    } catch (e) {
+      setLoadError(true);
+      console.error('Failed to load snippets:', e);
+    }
     finally { setLoading(false); }
   }
 
@@ -164,6 +125,16 @@ export default function Snippets() {
         </div>
         <div style={{ flex: 1, overflow: 'auto' }}>
           {loading ? [1,2,3].map(i => <div key={i} className="skeleton" style={{ height: 68, margin: 8, borderRadius: 8 }} />) :
+            loadError ? (
+              <div className="flex flex-col items-center justify-center text-center p-6 mt-10">
+                <div className="text-4xl mb-3">⚠️</div>
+                <p className="font-medium text-gray-500">Couldn't load snippets</p>
+                <p className="text-sm text-gray-400 mt-1">Check your connection or try again</p>
+                <button onClick={loadData} className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm hover:bg-indigo-700 transition">
+                  Retry
+                </button>
+              </div>
+            ) :
             filtered.length === 0 ? (
               <div style={{ textAlign: 'center', padding: 32, color: 'var(--text-tertiary)' }}>
                 <div style={{ fontSize: 32, marginBottom: 8 }}>💻</div>
@@ -205,16 +176,13 @@ export default function Snippets() {
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
                 <button onClick={() => { navigator.clipboard.writeText(selected.code); toast.success('Copied!'); }} className="btn btn-secondary btn-sm">📋 Copy</button>
-                <button onClick={() => runAiReview(selected)} className="btn btn-primary btn-sm" disabled={reviewLoading}>
-                  {reviewLoading ? '🤖 Reviewing...' : '🤖 AI Review'}
-                </button>
+                <button onClick={() => setReviewSnippet(selected)} className="text-indigo-600 hover:text-indigo-800 text-sm font-medium">🤖 AI Review</button>
                 <button onClick={() => { if (confirm('Delete?')) deleteSnippet(selected._id); }} className="btn btn-sm" style={{ color: 'var(--danger)' }}>🗑</button>
               </div>
             </div>
             {selected.description && <p style={{ color: 'var(--text-secondary)', fontSize: 13, marginBottom: 14 }}>{selected.description}</p>}
             {selected.tags?.length > 0 && <div style={{ display: 'flex', gap: 4, marginBottom: 14 }}>{selected.tags.map(t => <span key={t} className="label-chip">{t}</span>)}</div>}
             <CodeHighlight code={selected.code} language={selected.language} />
-            <ReviewPanel review={selected.aiReview} loading={reviewLoading} onApplyFix={applyFixToSnippet} />
           </div>
         )}
       </div>
@@ -287,6 +255,7 @@ export default function Snippets() {
           </div>
         </div>
       )}
+      {reviewSnippet && <CodeReviewPanel snippet={reviewSnippet} onClose={() => setReviewSnippet(null)} />}
     </div>
   );
 }

@@ -11,6 +11,9 @@ import Shepherd from 'shepherd.js';
 import 'shepherd.js/dist/css/shepherd.css';
 import { format, isPast, isToday } from 'date-fns';
 import { Avatar } from '../components/Layout';
+import PresenceBar from '../components/PresenceBar';
+import AIBreakdownModal from '../components/AIBreakdownModal';
+import SeedButton from '../components/SeedButton';
 
 const COLUMNS = [
   { id: 'todo', label: 'To Do', color: '#64748b' },
@@ -641,7 +644,8 @@ export default function ProjectBoard() {
   const [taskViewers, setTaskViewers] = useState({});
   const [projectSummary, setProjectSummary] = useState(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
-  const [error, setError] = useState(false);
+  const [boardError, setBoardError] = useState(false);
+  const [showBreakdown, setShowBreakdown] = useState(false);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
@@ -698,19 +702,22 @@ export default function ProjectBoard() {
   }, [handleMouseMove]);
 
   async function loadData() {
-    setError(false);
-    setLoading(true);
     try {
+      setLoading(true);
+      setBoardError(false);
       const [pRes, tRes] = await Promise.all([api.get(`/projects/${projectId}`), api.get(`/tasks?projectId=${projectId}`)]);
       setProject(pRes.data);
       setTasks(tRes.data);
       const wsRes = await api.get(`/workspaces/${pRes.data.workspaceId}`);
       setWorkspace(wsRes.data);
       setMembers(wsRes.data.members || []);
-    } catch { 
-      setError(true); 
+    } catch (err) {
+      setTasks([]);
+      setBoardError(true);
+      console.error('Board load error:', err);
+    } finally {
+      setLoading(false);
     }
-    finally { setLoading(false); }
   }
 
   function getColumnTasks(colId) {
@@ -794,20 +801,29 @@ export default function ProjectBoard() {
   }
 
   if (loading) return (
-    <div style={{ padding: 24 }}>
-      <div className="skeleton" style={{ height: 40, width: 300, marginBottom: 20 }} />
-      <div style={{ display: 'flex', gap: 16 }}>
-        {[1,2,3,4].map(i => <div key={i} className="skeleton" style={{ width: 280, height: 400, borderRadius: 14 }} />)}
-      </div>
+    <div style={{ padding: 24, display: 'flex', gap: 16 }}>
+      {[1, 2, 3, 4].map(col => (
+        <div key={col} style={{ width: 280, flexShrink: 0 }}>
+          <div className="skeleton" style={{ height: 32, width: '60%', marginBottom: 16, borderRadius: 8 }} />
+          {[1, 2, 3].map(card => (
+            <div key={card} className="skeleton" style={{ height: 120, width: '100%', marginBottom: 12, borderRadius: 12 }} />
+          ))}
+        </div>
+      ))}
     </div>
   );
 
-  if (error) return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '50vh' }}>
-      <div style={{ fontSize: 48, marginBottom: 16 }}>⚠️</div>
-      <h3 style={{ marginBottom: 8, color: 'var(--text-primary)' }}>Something went wrong</h3>
-      <p style={{ color: 'var(--text-tertiary)', marginBottom: 20 }}>We couldn't load this project board.</p>
-      <button onClick={loadData} className="btn btn-secondary">Retry →</button>
+  if (boardError) return (
+    <div className="flex flex-col items-center justify-center h-64 text-center">
+      <div className="text-4xl mb-3">⚠️</div>
+      <p className="font-medium text-gray-500">Couldn't load tasks</p>
+      <p className="text-sm text-gray-400 mt-1">Check your connection or try again</p>
+      <button
+        onClick={loadData}
+        className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm hover:bg-indigo-700 transition"
+      >
+        Retry
+      </button>
     </div>
   );
 
@@ -821,19 +837,8 @@ export default function ProjectBoard() {
           {project?.techStack?.map(t => <span key={t} className="label-chip">{t}</span>)}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          {/* Presence */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>👥 {presence.length} people viewing:</span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              {presence.slice(0, 8).map((p, i) => (
-                <div key={i} style={{ position: 'relative', animation: 'popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards' }}>
-                  <div className="avatar avatar-sm" title={p.userName} style={{ background: '#6366f1', border: '2px solid var(--bg-surface)' }}>{p.avatar ? <img src={p.avatar} style={{width:'100%', height:'100%', borderRadius:'50%'}}/> : p.userName?.charAt(0)}</div>
-                  <div style={{ position: 'absolute', bottom: 0, right: 0, width: 8, height: 8, background: '#10b981', border: '1px solid var(--bg-surface)', borderRadius: '50%', animation: 'pulse 2s infinite' }} />
-                </div>
-              ))}
-              {presence.length > 8 && <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontWeight: 600 }}>+{presence.length - 8} more</span>}
-            </div>
-          </div>
+          <PresenceBar socket={getSocket()} projectId={projectId} currentUser={user} />
+          
           {/* Filters */}
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search tasks..." style={{ width: 140, padding: '5px 10px', fontSize: 12 }} />
           <select value={filterPriority} onChange={e => setFilterPriority(e.target.value)} style={{ width: 100, padding: '5px', fontSize: 12 }}>
@@ -846,6 +851,7 @@ export default function ProjectBoard() {
             <option value="">Assignee</option>
             {members.map(m => m.userId && <option key={m.userId._id} value={m.userId._id}>{m.userId.name}</option>)}
           </select>
+          
           <div style={{ display: 'flex', border: '1px solid var(--sidebar-border)', borderRadius: 6 }}>
             {['kanban', 'list'].map(v => (
               <button key={v} onClick={() => setView(v)} className="btn btn-sm" style={{ borderRadius: 0, background: view === v ? 'var(--primary)' : 'transparent', color: view === v ? 'var(--bg-surface)' : 'var(--text-secondary)' }}>
@@ -853,12 +859,18 @@ export default function ProjectBoard() {
               </button>
             ))}
           </div>
+
           <button onClick={async () => {
-    setSummaryLoading(true);
-    try { const r = await api.post('/ai/project-summary', { projectId }); setProjectSummary(r.data.summary); }
-    catch { toast.error('AI unavailable'); } finally { setSummaryLoading(false); }
-  }} className="btn btn-secondary btn-sm" disabled={summaryLoading}>{summaryLoading ? '...' : '🤖 Summary'}</button>
-  <button onClick={() => setShowCreate(true)} className="btn btn-primary btn-sm">+ Task</button>
+            setSummaryLoading(true);
+            try { const r = await api.post('/ai/project-summary', { projectId }); setProjectSummary(r.data.summary); }
+            catch { toast.error('AI unavailable'); } finally { setSummaryLoading(false); }
+          }} className="btn btn-secondary btn-sm" disabled={summaryLoading}>{summaryLoading ? '...' : '🤖 Summary'}</button>
+          
+          <button onClick={() => setShowBreakdown(true)} className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-white bg-indigo-600 rounded-lg shadow hover:bg-indigo-700 transition-colors">
+            ⚡ AI Breakdown
+          </button>
+          <SeedButton projectId={projectId} onSeeded={loadData} />
+          <button onClick={() => setShowCreate(true)} className="btn btn-primary btn-sm">+ Task</button>
         </div>
       </div>
       {projectSummary && (
@@ -953,6 +965,7 @@ export default function ProjectBoard() {
           <div style={{ background: '#6366f1', color: 'white', padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 600, boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>{c.userName}</div>
         </div>
       ))}
+      {showBreakdown && <AIBreakdownModal projectId={projectId} onTasksCreated={loadData} onClose={() => setShowBreakdown(false)} />}
     </div>
   );
 }

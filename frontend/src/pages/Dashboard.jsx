@@ -13,6 +13,7 @@ export default function Dashboard() {
   const [showNewProject, setShowNewProject] = useState(false);
   const [activeWs, setActiveWs] = useState(null);
   const [activities, setActivities] = useState([]);
+  const [loadError, setLoadError] = useState(false);
   const [newProject, setNewProject] = useState({ name: '', description: '', techStack: '', colourLabel: '#6366f1' });
 
   useEffect(() => { loadData(); }, []);
@@ -31,7 +32,10 @@ export default function Dashboard() {
         const aRes = await api.get('/activity');
         setActivities(aRes.data);
       } catch (e) {}
-    } catch (e) { toast.error('Failed to load workspace'); }
+    } catch (e) {
+      setLoadError(true);
+      console.error('Failed to load workspace:', e);
+    }
     finally { setLoading(false); }
   }
 
@@ -76,6 +80,17 @@ export default function Dashboard() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
         {[1,2,3].map(i => <div key={i} className="skeleton" style={{ height: 140 }} />)}
       </div>
+    </div>
+  );
+
+  if (loadError) return (
+    <div className="flex flex-col items-center justify-center h-64 text-center mt-20">
+      <div className="text-4xl mb-3">⚠️</div>
+      <p className="font-medium text-gray-500">Couldn't load dashboard</p>
+      <p className="text-sm text-gray-400 mt-1">Check your connection or try again</p>
+      <button onClick={loadData} className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm hover:bg-indigo-700 transition">
+        Retry
+      </button>
     </div>
   );
 

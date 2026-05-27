@@ -35,6 +35,7 @@ app.use('/api/snippets', require('./routes/snippets'));
 app.use('/api/wiki', require('./routes/wiki'));
 app.use('/api/ai', require('./routes/ai'));
 app.use('/api/search', require('./routes/search'));
+app.use('/api/seed', require('./routes/seed'));
 app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/activity', require('./routes/activity'));
 
@@ -76,8 +77,19 @@ io.use((socket, next) => {
   }
 });
 
+const rooms = new Map(); // projectId -> Map(socketId -> userObject)
+
 io.on('connection', (socket) => {
   console.log('Client connected:', socket.id);
+
+  socket.on('presence:join', ({ projectId, user }) => {
+    socket.join(projectId);
+    socket.data.projectId = projectId;
+    socket.data.userId = user.id;
+    if (!rooms.has(projectId)) rooms.set(projectId, new Map());
+    rooms.get(projectId).set(socket.id, { ...user, socketId: socket.id });
+    io.to(projectId).emit('presence:update', [...rooms.get(projectId).values()]);
+  });
 
   socket.on('join:project', ({ projectId, userId, userName, avatar }) => {
     socket.join(`project:${projectId}`);
@@ -96,6 +108,18 @@ io.on('connection', (socket) => {
 
   socket.on('cursor:move', (data) => {
     socket.to(`project:${data.projectId}`).emit('cursor:move', { ...data, socketId: socket.id, userName: socket.user?.name, avatar: socket.user?.avatar });
+  });
+
+  socket.on('task:move', ({ projectId, taskId, newStatus, movedBy }) => {
+    socket.to(projectId).emit('task:moved', { taskId, newStatus, movedBy });
+  });
+
+  socket.on('task:hover', ({ projectId, taskId, user }) => {
+    socket.to(projectId).emit('task:hovered', { taskId, user });
+  });
+
+  socket.on('task:unhover', ({ projectId, taskId }) => {
+    socket.to(projectId).emit('task:unhovered', { taskId });
   });
 
   socket.on('task:moved', (data) => {
@@ -143,10 +167,18 @@ io.on('connection', (socket) => {
   });
 
   socket.on('disconnect', () => {
-    for (const projectId in activeUsers) {
-      if (activeUsers[projectId][socket.id]) {
-        delete activeUsers[projectId][socket.id];
-        io.to(`project:${projectId}`).emit('presence:update', Object.values(activeUsers[projectId]));
+    const { projectId } = socket.data;
+    if (projectId && rooms.has(projectId)) {
+      rooms.get(projectId).delete(socket.id);
+      const remaining = [...rooms.get(projectId).values()];
+      io.to(projectId).emit('presence:update', remaining);
+      if (remaining.length === 0) rooms.delete(projectId);
+    }
+
+    for (const pId in activeUsers) {
+      if (activeUsers[pId][socket.id]) {
+        delete activeUsers[pId][socket.id];
+        io.to(`project:${pId}`).emit('presence:update', Object.values(activeUsers[pId]));
       }
     }
   });

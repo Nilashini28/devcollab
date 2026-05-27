@@ -5,8 +5,7 @@ import { useTheme } from '../context/ThemeContext';
 import { getSocket } from '../utils/socket';
 import api from '../utils/api';
 import toast from 'react-hot-toast';
-import { Command } from 'cmdk';
-import './cmdk.css';
+import CommandPalette from './CommandPalette';
 
 function Avatar({ user, size = '' }) {
   const initials = user?.name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || '?';
@@ -35,9 +34,7 @@ export default function Layout() {
   const [showDevMind, setShowDevMind] = useState(false);
   const [devMindAlerts, setDevMindAlerts] = useState([]);
   const [activeProjectId, setActiveProjectId] = useState(null);
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState([]);
+  const [showPalette, setShowPalette] = useState(false);
   const [showWsSettings, setShowWsSettings] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteLink, setInviteLink] = useState(null);
@@ -64,29 +61,15 @@ export default function Layout() {
   }, [location.pathname]);
 
   useEffect(() => {
-    const down = (e) => {
-      if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
+    const handler = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
-        setSearchOpen((open) => !open);
+        setShowPalette(true);
       }
     };
-    document.addEventListener('keydown', down);
-    return () => document.removeEventListener('keydown', down);
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
   }, []);
-
-  useEffect(() => {
-    if (!searchQuery || !activeWorkspace) {
-      setSearchResults([]);
-      return;
-    }
-    const timer = setTimeout(async () => {
-      try {
-        const r = await api.get(`/search?q=${encodeURIComponent(searchQuery)}&workspaceId=${activeWorkspace._id}`);
-        setSearchResults(r.data);
-      } catch (e) {}
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [searchQuery, activeWorkspace]);
 
   async function loadWorkspaces() {
     try {
@@ -221,10 +204,16 @@ export default function Layout() {
       <div className="main-content" style={{ flex: 1 }}>
         {/* Top bar */}
         <div style={{ height: 56, background: 'var(--bg-surface)', borderBottom: '1px solid var(--sidebar-border)', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', padding: '0 20px', gap: 12, position: 'sticky', top: 0, zIndex: 50 }}>
-          <button onClick={() => setSearchOpen(true)} style={{ flex: 1, maxWidth: 300, background: 'var(--bg-base)', border: '1px solid var(--sidebar-border)', borderRadius: 'var(--radius-sm)', padding: '6px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: 'var(--text-tertiary)', cursor: 'text', marginRight: 'auto' }}>
-    <span style={{ fontSize: 13 }}>Search...</span>
-    <kbd style={{ background: 'var(--bg-surface)', padding: '2px 6px', borderRadius: 4, fontSize: 10, fontFamily: 'monospace', border: '1px solid var(--sidebar-border)', color: 'var(--text-secondary)' }}>⌘K</kbd>
-  </button>
+          <div style={{ marginRight: 'auto' }}>
+            <button 
+              onClick={() => setShowPalette(true)}
+              className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-400 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition"
+            >
+              <span>🔍</span>
+              <span>Search...</span>
+              <kbd className="text-xs bg-white border border-gray-200 px-1.5 py-0.5 rounded ml-1">⌘K</kbd>
+            </button>
+          </div>
   <div style={{ position: 'relative' }}>
             <button onClick={() => { setShowNotifs(!showNotifs); if (!showNotifs && unread > 0) markAllRead(); }} style={{ position: 'relative', padding: 8, borderRadius: 8, color: 'var(--text-secondary)' }}>
               🔔
@@ -267,27 +256,7 @@ export default function Layout() {
         )}
 
         <Outlet />
-            <Command.Dialog open={searchOpen} onOpenChange={setSearchOpen} label="Global Search">
-        <Command.Input value={searchQuery} onValueChange={setSearchQuery} placeholder="Search tasks, snippets, wiki..." />
-        <Command.List>
-          {searchQuery && searchResults.length === 0 && <Command.Empty>No results found.</Command.Empty>}
-          {searchResults.map((res) => (
-            <Command.Item key={res.type + res.id} value={res.title} onSelect={() => {
-              setSearchOpen(false);
-              setSearchQuery('');
-              if (res.type === 'task') { navigate(`/project/${res.projectId}`); /* you could open modal here if we had global state */ }
-              else if (res.type === 'snippet') navigate(`/project/${res.projectId}/snippets`);
-              else if (res.type === 'wiki') navigate(`/project/${res.projectId}/wiki`);
-            }}>
-              <span style={{ fontSize: 18 }}>{res.type === 'task' ? '📝' : res.type === 'snippet' ? '💻' : '📚'}</span>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 500 }}>{res.title}</div>
-                <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{res.type} {res.badge ? `· ${res.badge}` : ''}</div>
-              </div>
-            </Command.Item>
-          ))}
-        </Command.List>
-      </Command.Dialog>
+        {showPalette && <CommandPalette onClose={() => setShowPalette(false)} />}
       </div>
 
       {showWsSettings && activeWorkspace && (

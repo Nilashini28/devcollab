@@ -1,30 +1,29 @@
 const router = require('express').Router();
 const auth = require('../middleware/auth');
-const { Task, Snippet, WikiPage, Project } = require('../models/index');
+const { Task, Snippet, WikiPage } = require('../models/index');
 
 router.get('/', auth, async (req, res) => {
   try {
-    const { q, workspaceId } = req.query;
-    if (!q || !workspaceId) return res.json([]);
-
-    const projects = await Project.find({ workspaceId }).select('_id');
-    const projectIds = projects.map(p => p._id);
+    const { q } = req.query;
+    if (!q) {
+      return res.json({ tasks: [], snippets: [], wiki: [] });
+    }
 
     const regex = new RegExp(q, 'i');
 
     const [tasks, snippets, wiki] = await Promise.all([
-      Task.find({ projectId: { $in: projectIds }, $or: [{ title: regex }, { description: regex }] }).limit(10).select('title projectId status'),
-      Snippet.find({ projectId: { $in: projectIds }, $or: [{ title: regex }, { code: regex }] }).limit(10).select('title projectId language'),
-      WikiPage.find({ projectId: { $in: projectIds }, $or: [{ title: regex }, { content: regex }] }).limit(10).select('title projectId')
+      Task.find({ title: regex })
+        .limit(5)
+        .select('title priority status projectId'),
+      Snippet.find({ $or: [{ title: regex }, { tags: regex }] })
+        .limit(5)
+        .select('title language projectId'),
+      WikiPage.find({ title: regex })
+        .limit(5)
+        .select('title projectId')
     ]);
 
-    const results = [
-      ...tasks.map(t => ({ id: t._id, type: 'task', title: t.title, projectId: t.projectId, badge: t.status })),
-      ...snippets.map(s => ({ id: s._id, type: 'snippet', title: s.title, projectId: s.projectId, badge: s.language })),
-      ...wiki.map(w => ({ id: w._id, type: 'wiki', title: w.title, projectId: w.projectId }))
-    ];
-
-    res.json(results);
+    res.json({ tasks, snippets, wiki });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }

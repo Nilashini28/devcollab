@@ -11,6 +11,7 @@ export default function Wiki() {
   const [content, setContent] = useState('');
   const [title, setTitle] = useState('');
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [pageLoading, setPageLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
@@ -28,7 +29,10 @@ export default function Wiki() {
       const r = await api.get(`/wiki?projectId=${projectId}`);
       setPages(r.data);
       if (r.data.length > 0) loadPage(r.data[0]._id);
-    } catch { toast.error('Failed to load wiki'); }
+    } catch (e) {
+      setLoadError(true);
+      console.error('Failed to load wiki:', e);
+    }
     finally { setLoading(false); }
   }
 
@@ -41,7 +45,7 @@ export default function Wiki() {
       setTitle(r.data.title || '');
       setEditing(false);
       setAiSummary(null);
-    } catch { toast.error('Failed to load page'); }
+    } catch (e) { console.error('Failed to load page', e); }
     finally { setPageLoading(false); }
   }
 
@@ -128,6 +132,16 @@ export default function Wiki() {
         </div>
         <div style={{ flex: 1, overflow: 'auto', padding: '8px 0' }}>
           {loading ? [1,2,3].map(i => <div key={i} className="skeleton" style={{ height: 36, margin: '4px 8px', borderRadius: 6 }} />) :
+            loadError ? (
+              <div className="flex flex-col items-center justify-center text-center p-6 mt-10">
+                <div className="text-4xl mb-3">⚠️</div>
+                <p className="font-medium text-gray-500">Couldn't load wiki</p>
+                <p className="text-sm text-gray-400 mt-1">Check your connection or try again</p>
+                <button onClick={loadPages} className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm hover:bg-indigo-700 transition">
+                  Retry
+                </button>
+              </div>
+            ) :
             filtered.length === 0 ? (
               <div style={{ textAlign: 'center', padding: 24, color: 'var(--text-tertiary)', fontSize: 13 }}>
                 <div style={{ fontSize: 28, marginBottom: 8 }}>📚</div>
